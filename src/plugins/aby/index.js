@@ -1,7 +1,7 @@
-const { abyPromise, abxPromise } = require("../../utils/detail");
+const { abyPromise } = require("../../utils/detail");
 const { hasAuth, sendPrompt } = require("../../utils/auth");
 const { get } = require("../../utils/database");
-const render = require("../../utils/render");
+const { render } = require("../../utils/render");
 
 const generateImage = async (uid, id, type) => {
   let data = await get("aby", "user", { uid });
@@ -49,11 +49,19 @@ module.exports = async (Message) => {
   try {
     const abyInfo = await abyPromise(...dbInfo, schedule_type);
     if (!abyInfo) {
-      await bot.sendMessage(sendID, `[CQ:at,qq=${userID}] 您似乎从未挑战过深境螺旋。`, type);
+      await bot.sendMessage(
+        sendID,
+        `[CQ:at,qq=${userID}] 您似乎从未挑战过深境螺旋。`,
+        type
+      );
       return;
     }
     if (!abyInfo["floors"].length) {
-      await bot.sendMessage(sendID, `[CQ:at,qq=${userID}] 无渊月螺旋记录。`, type);
+      await bot.sendMessage(
+        sendID,
+        `[CQ:at,qq=${userID}] 无渊月螺旋记录。`,
+        type
+      );
       return;
     }
   } catch (errInfo) {
