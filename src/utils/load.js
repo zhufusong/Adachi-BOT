@@ -11,7 +11,16 @@ const __dirname = path.dirname(__filename);
 const require = module.createRequire(import.meta.url);
 
 function loadYML(name) {
-  return yaml.load(fs.readFileSync(`./config/${name}.yml`, "utf-8"));
+  let filename = `${name}.yml`;
+  let filepath = path.resolve(__dirname, "..", "..", "config", filename);
+
+  try {
+    fs.accessSync(filepath, fs.constants.R_OK);
+  } catch (e) {
+    filepath = path.resolve(__dirname, "..", "..", "config_defaults", filename);
+  }
+
+  return yaml.load(fs.readFileSync(filepath, "utf-8"));
 }
 
 async function loadPlugins() {
@@ -21,10 +30,10 @@ async function loadPlugins() {
   for (let plugin of pluginsPath) {
     try {
       plugins[plugin] = await import(`../plugins/${plugin}/index.js`);
+      bot.logger.info(`插件 ${plugin} 加载完成`);
     } catch (error) {
       bot.logger.error(`插件 ${plugin} 加载失败：${error}`);
     }
-    bot.logger.info(`插件 ${plugin} 加载完成`);
   }
 
   return plugins;
@@ -64,7 +73,7 @@ async function processed(qqData, plugins, type) {
       bot.sendMessage(qqData.group_id, greetingHello, "group");
     } else {
       // 如果有新群友加入，向新群友问好
-      if (groupGreetingNew) {
+      if (groupGreetingNew && (await hasAuth(qqData.group_id, "reply"))) {
         bot.sendMessage(
           qqData.group_id,
           `[CQ:at,qq=${qqData.user_id}] ${greetingNew}`,
@@ -78,7 +87,8 @@ async function processed(qqData, plugins, type) {
 
   // 如果响应群消息，而且收到的信息是命令，指派插件处理命令
   if (
-    (await hasAuth(qqData.group_id, "replyGroup")) &&
+    (await hasAuth(qqData.group_id, "reply")) &&
+    (await hasAuth(qqData.user_id, "reply")) &&
     qqData.hasOwnProperty("message") &&
     qqData.message[0] &&
     qqData.message[0].type === "text"
@@ -104,7 +114,7 @@ async function processed(qqData, plugins, type) {
   if (type === "online") {
     if (groupHello) {
       bot.gl.forEach(async (group) => {
-        let greeting = (await hasAuth(group.group_id, "replyGroup"))
+        let greeting = (await hasAuth(group.group_id, "reply"))
           ? greetingOnline
           : greetingDie;
         bot.sendMessage(group.group_id, greeting, "group");
