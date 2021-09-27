@@ -11,7 +11,7 @@ async function Plugin(Message) {
   let groupID = Message.group_id;
   let type = Message.type;
   let name = Message.sender.nickname;
-  let sendID = type === "group" ? groupID : userID;
+  let sendID = "group" === type ? groupID : userID;
   let cacheDir = path.join(
     path.resolve(__dirname, "..", "..", "..", "data", "image", "material"),
     "/"
@@ -30,13 +30,13 @@ async function Plugin(Message) {
   });
 
   switch (true) {
-    case msg.includes("武器"):
+    case msg.startsWith("武器"):
       thisURL = weaponURL;
       break;
-    case msg.includes("天赋"):
+    case msg.startsWith("天赋"):
       thisURL = talentURL;
       break;
-    case msg.includes("周本"):
+    case msg.startsWith("周本"):
       thisURL = weeklyURL;
       break;
   }
