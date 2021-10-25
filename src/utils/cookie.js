@@ -1,13 +1,12 @@
+/* global config */
+/* eslint no-undef: "error" */
+
+import path from "path";
 import lodash from "lodash";
 import db from "./database.js";
-import { loadYML } from "./yaml.js";
 
-const configs = loadYML("cookies");
-const cookies = configs
-  ? Array.isArray(configs["cookies"])
-    ? configs["cookies"]
-    : []
-  : [];
+const COOKIE_TIMES_INVALID_MARK = 0xabadcafe;
+const cookies = config.cookies || [];
 let index = 0;
 
 function increaseIndex() {
@@ -20,8 +19,8 @@ function isValidCookie(cookie) {
   // 缺点：依赖网络并且耗时较多
   if (
     "string" === typeof cookie &&
-    cookie.includes("account_id=") &&
-    cookie.includes("cookie_token=")
+    cookie.match(/cookie_token=\w+?\b/) &&
+    cookie.match(/account_id=\w+?\b/)
   ) {
     return true;
   }
@@ -30,73 +29,162 @@ function isValidCookie(cookie) {
 }
 
 async function getEffectiveCookie(uid, s, use_cookie) {
-  return new Promise(async (resolve, reject) => {
-    let p = index;
-    increaseIndex();
+  const dbName = "cookies";
+  let p = index;
+  increaseIndex();
 
-    p = p === cookies.length - 1 ? 0 : p + 1;
+  p = p === cookies.length - 1 ? 0 : p + 1;
 
-    let cookie = cookies[p];
-    let today = new Date().toLocaleDateString();
+  const cookie = cookies[p];
+  const today = new Date().toLocaleDateString();
 
-    if (!isValidCookie(cookie)) {
-      resolve(undefined);
-      return;
+  if (!isValidCookie(cookie)) {
+    return undefined;
+  }
+
+  if (!(await db.includes(dbName, "cookie", "cookie", cookie))) {
+    const initData = { cookie, date: today, times: 0 };
+    await db.push(dbName, "cookie", initData);
+  }
+
+  let { date, times } = await db.get(dbName, "cookie", { cookie });
+
+  if (date && date === today && times && times >= 30) {
+    return s >= cookies.length
+      ? cookie
+      : await getEffectiveCookie(uid, s + 1, use_cookie);
+  } else {
+    if (date && date != today) {
+      times = 0;
     }
 
-    if (!(await db.includes("cookies", "cookie", "cookie", cookie))) {
-      let initData = { cookie: cookie, date: today, times: 0 };
-      await db.push("cookies", "cookie", initData);
+    date = today;
+    times = times ? times + 1 : 1;
+
+    if (use_cookie) {
+      await db.update(dbName, "cookie", { cookie }, { date, times });
     }
 
-    let { date, times } = await db.get("cookies", "cookie", { cookie });
+    await db.update(
+      dbName,
+      "uid",
+      { uid },
+      lodash.assign({ date, cookie }, use_cookie ? { times } : {})
+    );
 
-    if (date && date == today && times & (times >= 30)) {
-      resolve(
-        s >= cookies.length
-          ? cookie
-          : await getEffectiveCookie(uid, s + 1, use_cookie)
-      );
-    } else {
-      if (date && date != today) {
-        times = 0;
-      }
-
-      date = today;
-      times = times ? times + 1 : 1;
-
-      if (use_cookie) {
-        await db.update("cookies", "cookie", { cookie }, { date, times });
-      }
-
-      await db.update("cookies", "uid", { uid }, { date, cookie });
-      resolve(cookie);
-    }
-  });
+    return cookie;
+  }
 }
 
 async function getCookie(uid, use_cookie, bot) {
-  return new Promise(async (resolve, reject) => {
-    if (!(await db.includes("cookies", "uid", "uid", uid))) {
-      let initData = { uid, date: "", cookie: "" };
-      await db.push("cookies", "uid", initData);
-    }
+  const dbName = "cookies";
 
-    let { date, cookie } = await db.get("cookies", "uid", { uid });
-    let today = new Date().toLocaleDateString();
+  if (!(await db.includes(dbName, "uid", "uid", uid))) {
+    const initData = { uid, date: "", cookie: "", times: 0 };
+    await db.push(dbName, "uid", initData);
+  }
 
-    if (!(date && cookie && date == today)) {
-      cookie = await getEffectiveCookie(uid, 1, use_cookie);
-    }
+  let { date, cookie } = (await db.get(dbName, "uid", { uid })) || {};
+  const today = new Date().toLocaleDateString();
 
-    if (!cookie) {
-      reject("获取 Cookie 失败！");
-      return;
-    }
+  if (!(date && cookie && date === today)) {
+    cookie = await getEffectiveCookie(uid, 1, use_cookie);
+  }
 
-    bot.logger.debug(`Cookie： ${uid} -> ${cookie}`);
-    resolve(cookie);
-  });
+  if (!cookie) {
+    return Promise.reject("获取 Cookie 失败！");
+  }
+
+  bot.logger.debug(`Cookie： ${uid} -> ${cookie}`);
+  return cookie;
 }
 
-export { getCookie };
+async function markCookieUnusable(cookie) {
+  const dbName = "cookies";
+
+  if (cookie && (await db.includes(dbName, "cookie", "cookie", cookie))) {
+    let { times } = (await db.get(dbName, "cookie", { cookie })) || {};
+
+    // Cookie 标记为无效
+    await db.update(
+      dbName,
+      "cookie",
+      { cookie },
+      { times: COOKIE_TIMES_INVALID_MARK }
+    );
+
+    // 删除最后一个绑定关系
+    if (times) {
+      await db.remove(dbName, "uid", { cookie, times });
+    }
+  }
+}
+
+async function writeInvalidCookie(cookie) {
+  const dbName = "cookies_invalid";
+  const dbCookieName = "cookies";
+  const [cookie_token] = cookie.match(/cookie_token=\w+?\b/) || [];
+  const [account_id] = cookie.match(/account_id=\w+?\b/) || [];
+
+  if (cookie_token && account_id) {
+    if (!(await db.includes(dbName, "cookie", "cookie", cookie))) {
+      const initData = { cookie, cookie_token, account_id };
+      await db.push(dbName, "cookie", initData);
+      await markCookieUnusable(cookie);
+
+      // 删除该 Cookie 所有的使用记录
+      if (await db.includes(dbCookieName, "uid", "cookie", cookie)) {
+        await db.remove(dbCookieName, "uid", { cookie });
+      }
+    }
+  }
+}
+
+async function textOfInvalidCookies() {
+  const dbName = "cookies_invalid";
+  const config = path.join("config", "cookies.yml");
+  const data = (await db.get(dbName, "cookie")) || [];
+  let text = "";
+
+  for (const cookie of data) {
+    if (cookie.cookie_token && cookie.account_id) {
+      text += `\n${cookie.account_id}; ${cookie.cookie_token}`;
+    }
+  }
+
+  text && (text = `发现以下无效 Cookie ，请及时在 ${config} 中删除。${text}`);
+  return text;
+}
+
+async function warnInvalidCookie(cookie) {
+  const dbName = "cookies_invalid";
+  await db.clean(dbName);
+  await writeInvalidCookie(cookie);
+  return await textOfInvalidCookies();
+}
+
+async function tryToWarnInvalidCookie(message, cookie) {
+  const invalidResponseList = ["please login"];
+  const reachMaxTimeResponseList = ["access the genshin game records of up to"];
+
+  if (cookie && message) {
+    const errInfo = message.toLowerCase();
+
+    for (const res of invalidResponseList.map((c) => c.toLowerCase())) {
+      if (errInfo.includes(res)) {
+        return await warnInvalidCookie(cookie);
+      }
+    }
+
+    for (const res of reachMaxTimeResponseList.map((c) => c.toLowerCase())) {
+      if (errInfo.includes(res)) {
+        markCookieUnusable(cookie);
+        return undefined;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export { getCookie, textOfInvalidCookies, tryToWarnInvalidCookie };

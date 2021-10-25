@@ -1,25 +1,17 @@
+/* global config, rootdir */
+/* eslint no-undef: "error" */
+
 import { Low, JSONFileSync } from "lowdb";
-import url from "url";
 import path from "path";
 import lodash from "lodash";
 import { Mutex } from "./mutex.js";
-import { getID } from "./id.js";
 
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const db = {};
 const mutex = new Mutex();
 
 // 如果数据库不存在，将自动创建新的空数据库。
 async function init(dbName, defaultElement = { user: [] }) {
-  const file = path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "data",
-    "db",
-    `${dbName}.json`
-  );
+  const file = path.resolve(rootdir, "data", "db", `${dbName}.json`);
   const adapter = new JSONFileSync(file);
 
   db[dbName] = new Low(adapter);
@@ -44,18 +36,30 @@ async function write(dbName) {
 }
 
 async function includes(dbName, key, index, value) {
-  return undefined === db[dbName]
-    ? undefined
-    : db[dbName].chain.get(key).map(index).includes(value).value();
+  return (
+    db[dbName] && db[dbName].chain.get(key).map(index).includes(value).value()
+  );
+}
+
+async function remove(dbName, key, index) {
+  if (undefined === db[dbName]) {
+    return;
+  }
+
+  await mutex.acquire();
+  db[dbName].data[key] = db[dbName].chain.get(key).reject(index).value();
+  mutex.release();
+
+  write(dbName);
 }
 
 async function get(dbName, key, index = undefined) {
-  if (undefined === db[dbName]) {
-    return undefined;
-  }
-  return undefined === index
-    ? db[dbName].chain.get(key).value()
-    : db[dbName].chain.get(key).find(index).value();
+  return (
+    db[dbName] &&
+    (undefined === index
+      ? db[dbName].chain.get(key).value()
+      : db[dbName].chain.get(key).find(index).value())
+  );
 }
 
 async function push(dbName, key, data) {
@@ -106,7 +110,7 @@ async function cleanByTimeDB(
     return nums;
   }
 
-  let timeDBRecords = await get("time", "user");
+  const timeDBRecords = await get("time", "user");
   let records = await get(dbName, dbKey[0]);
 
   if (!records) {
@@ -121,7 +125,7 @@ async function cleanByTimeDB(
     return nums;
   }
 
-  for (let i in records) {
+  for (const i in records) {
     const uid = records[i][dbKey[1]];
 
     // 没有基准字段则删除该记录（因为很可能是错误数据）
@@ -139,7 +143,6 @@ async function cleanByTimeDB(
     if (!time || now - time > milliseconds) {
       records.splice(i, 1);
       nums++;
-      continue;
     }
   }
 
@@ -147,23 +150,22 @@ async function cleanByTimeDB(
   return nums;
 }
 
+// 清理不是今天的数据
 async function cleanCookies() {
-  // 清理不是今天的数据
   const dbName = "cookies";
   const keys = ["cookie", "uid"];
   const today = new Date().toLocaleDateString();
   let nums = 0;
 
-  for (let key of keys) {
+  for (const key of keys) {
     let records = await get(dbName, key);
 
-    for (let i in records) {
+    for (const i in records) {
       // 1. 没有基准字段则删除该记录
       // 2. 不是今天的记录一律删除
       if (!records[i].date || today != records[i].date) {
         records.splice(i, 1);
         nums++;
-        continue;
       }
     }
   }
@@ -172,24 +174,46 @@ async function cleanCookies() {
   return nums;
 }
 
+// 清理不在配置文件的数据
+async function cleanCookiesInvalid() {
+  const dbName = "cookies_invalid";
+  const cookies = (await get(dbName, "cookie")) || [];
+  let nums = 0;
+
+  for (const i in cookies) {
+    if (
+      !cookies[i].cookie ||
+      !(config.cookies || []).includes(cookies[i].cookie)
+    ) {
+      cookies.splice(i, 1);
+      nums++;
+    }
+  }
+
+  await write(dbName);
+  return nums;
+}
+
 async function clean(dbName) {
-  switch (true) {
-    case "aby" === dbName:
+  switch (dbName) {
+    case "aby":
       return await cleanByTimeDB(
         dbName,
         ["user", "uid"],
         "aby",
         config.dbAbyEffectTime * 60 * 60 * 1000
       );
-    case "info" === dbName:
+    case "info":
       return await cleanByTimeDB(
         dbName,
         ["user", "uid"],
         "uid",
         config.dbInfoEffectTime * 60 * 60 * 1000
       );
-    case "cookies" === dbName:
+    case "cookies":
       return await cleanCookies();
+    case "cookies_invalid":
+      return await cleanCookiesInvalid();
   }
 
   return 0;
@@ -200,10 +224,10 @@ export default {
   has,
   write,
   includes,
+  remove,
   get,
   push,
   update,
   set,
   clean,
-  getID,
 };

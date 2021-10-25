@@ -1,3 +1,6 @@
+/* global bots */
+/* eslint no-undef: "error" */
+
 import lodash from "lodash";
 import db from "./database.js";
 import { getGachaList, getGachaDetail } from "./api.js";
@@ -5,33 +8,34 @@ import { getGachaList, getGachaDetail } from "./api.js";
 async function parseData(gachaID) {
   const data = await getGachaDetail(gachaID);
   let detail = {
-    gacha_type: parseInt(data["gacha_type"]),
+    gacha_type: parseInt(data.gacha_type),
     upFourStar: [],
     upFiveStar: [],
     nonUpFourStar: [],
     nonUpFiveStar: [],
     threeStar: [],
   };
-  data["r4_prob_list"].forEach((el) => {
-    let parsed = lodash.pick(el, ["item_type", "item_name"]);
 
-    if (el["is_up"] === 0) {
+  data.r4_prob_list.forEach((el) => {
+    const parsed = lodash.pick(el, ["item_type", "item_name"]);
+
+    if (el.is_up === 0) {
       detail.nonUpFourStar.push(parsed);
     } else {
       detail.upFourStar.push(parsed);
     }
   });
-  data["r5_prob_list"].forEach((el) => {
-    let parsed = lodash.pick(el, ["item_type", "item_name"]);
+  data.r5_prob_list.forEach((el) => {
+    const parsed = lodash.pick(el, ["item_type", "item_name"]);
 
-    if (el["is_up"] === 0) {
+    if (el.is_up === 0) {
       detail.nonUpFiveStar.push(parsed);
     } else {
       detail.upFiveStar.push(parsed);
     }
   });
-  data["r3_prob_list"].forEach((el) => {
-    let parsed = lodash.pick(el, ["item_type", "item_name"]);
+  data.r3_prob_list.forEach((el) => {
+    const parsed = lodash.pick(el, ["item_type", "item_name"]);
     detail.threeStar.push(parsed);
   });
   return detail;
@@ -45,12 +49,12 @@ async function gachaUpdate() {
   }
 
   const getGachaCode = (gachaID) => {
-    const gacha = gachaInfo.filter((el) => el["gacha_type"] === gachaID);
-    let maxTime = 0,
-      tmpGacha;
+    const gacha = gachaInfo.filter((el) => el.gacha_type === gachaID);
+    let maxTime = 0;
+    let tmpGacha;
 
-    for (let g of gacha) {
-      let date = new Date(g["begin_time"]);
+    for (const g of gacha) {
+      const date = new Date(g.begin_time);
 
       if (date.getTime() > maxTime) {
         maxTime = date.getTime();
@@ -58,10 +62,10 @@ async function gachaUpdate() {
       }
     }
 
-    return tmpGacha["gacha_id"];
+    return tmpGacha.gacha_id;
   };
 
-  const indefinite = await parseData(gachaInfo[0]["gacha_id"]);
+  const indefinite = await parseData(gachaInfo[0].gacha_id);
   const character = await parseData(getGachaCode(301));
   const weapon = await parseData(getGachaCode(302));
 

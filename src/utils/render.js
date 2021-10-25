@@ -1,4 +1,8 @@
+/* global browser, rootdir */
+/* eslint no-undef: "error" */
+
 import fs from "fs";
+import path from "path";
 import { Mutex } from "./mutex.js";
 
 const mutex = new Mutex();
@@ -12,7 +16,7 @@ async function render(data, name, id, type, user, bot) {
     const page = await browser.newPage();
 
     await fs.writeFile(
-      `./data/record/${name}.json`,
+      path.resolve(rootdir, "data", "record", `${name}.json`),
       JSON.stringify(data),
       () => {}
     );
@@ -24,8 +28,8 @@ async function render(data, name, id, type, user, bot) {
     });
 
     await page.close();
-  } catch (err) {
-    bot.logger.error(`${name} 功能绘图失败：${err}`, user);
+  } catch (e) {
+    bot.logger.error(`${name} 功能绘图失败：${e}`, user);
   } finally {
     mutex.release();
   }

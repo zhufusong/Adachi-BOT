@@ -1,22 +1,26 @@
 import db from "../../utils/database.js";
 import { render } from "../../utils/render.js";
 import { hasAuth, sendPrompt } from "../../utils/auth.js";
-import { basePromise, abyPromise } from "../../utils/detail.js";
+import {
+  basePromise,
+  abyPromise,
+  handleDetailError,
+} from "../../utils/detail.js";
 import { hasEntrance } from "../../utils/config.js";
 import { getID } from "../../utils/id.js";
 
 async function generateImage(uid, id, type, user, bot) {
-  let data = await db.get("aby", "user", { uid });
+  const data = await db.get("aby", "user", { uid });
   await render(data, "genshin-aby", id, type, user, bot);
 }
 
 async function Plugin(Message, bot) {
-  let msg = Message.raw_message;
-  let userID = Message.user_id;
-  let groupID = Message.group_id;
-  let type = Message.type;
-  let name = Message.sender.nickname;
-  let sendID = "group" === type ? groupID : userID;
+  const msg = Message.raw_message;
+  const userID = Message.user_id;
+  const groupID = Message.group_id;
+  const type = Message.type;
+  const name = Message.sender.nickname;
+  const sendID = "group" === type ? groupID : userID;
   let dbInfo = await getID(msg, userID, false); // UID
   let schedule_type = "1";
 
@@ -49,7 +53,7 @@ async function Plugin(Message, bot) {
       dbInfo = await getID(uid, userID, false); // UID
 
       if ("string" === typeof dbInfo) {
-        await bot.sendMessage(sendID, dbinfo, type, userID);
+        await bot.sendMessage(sendID, dbInfo, type, userID);
         return;
       }
     }
@@ -61,13 +65,21 @@ async function Plugin(Message, bot) {
       return;
     }
 
-    if (!abyInfo["floors"].length) {
+    if (!abyInfo.floors.length) {
       await bot.sendMessage(sendID, "无渊月螺旋记录。", type, userID);
       return;
     }
-  } catch (errInfo) {
-    if (errInfo !== "") {
-      await bot.sendMessage(sendID, errInfo, type, userID);
+  } catch (e) {
+    const ret = await handleDetailError(e);
+
+    if (!ret) {
+      await bot.sendMaster(sendID, e, type, userID);
+      return;
+    }
+
+    if (Array.isArray(ret)) {
+      ret[0] && (await bot.sendMessage(sendID, ret[0], type, userID));
+      ret[1] && (await bot.sendMaster(sendID, ret[1], type, userID));
       return;
     }
   }

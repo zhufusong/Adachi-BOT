@@ -1,13 +1,10 @@
+/* global all */
+/* eslint no-undef: "error" */
+
 import lodash from "lodash";
 import fetch from "node-fetch";
 import querystring from "querystring";
 import db from "../../utils/database.js";
-
-const MUSICSRC = {
-  SRC_QQ: "QQ",
-  SRC_163: "163",
-};
-Object.freeze(MUSICSRC);
 
 const ERRCODE = {
   ERR_SRC: "1",
@@ -23,12 +20,10 @@ const errMsg = {
 };
 
 async function musicQQ(keyword) {
-  let url = "https://api.qq.jsososo.com/search/quick";
-  let form = {
-    key: keyword,
-  };
-  let body = querystring.stringify(form);
-  let headers = {
+  const url = "https://api.qq.jsososo.com/search/quick";
+  const form = { key: keyword };
+  const body = querystring.stringify(form);
+  const headers = {
     "Content-Length": body.length,
     "Content-Type": "application/x-www-form-urlencoded",
     "User-Agent":
@@ -55,7 +50,7 @@ async function musicQQ(keyword) {
         type: "music",
         data: {
           type: "qq",
-          id: jbody["data"]["song"]["itemlist"][0]["id"],
+          id: jbody.data.song.itemlist[0].id,
         },
       },
     ];
@@ -65,15 +60,16 @@ async function musicQQ(keyword) {
 }
 
 async function music163(keyword) {
-  let url = "https://music.163.com/api/search/get/";
-  let form = {
+  const url = "https://music.163.com/api/search/get/";
+  const form = {
     s: keyword,
-    type: 1, // 1:单曲, 10:专辑, 100:歌手, 1000:歌单, 1002:用户, 1004:MV, 1006:歌词, 1009:电台, 1014:视频
+    // 1:单曲、 10:专辑、 100:歌手、 1000:歌单、 1002:用户、 1004:MV、 1006:歌词、 1009:电台、 1014:视频
+    type: 1,
     limit: 1,
     offset: 0,
   };
-  let body = querystring.stringify(form);
-  let headers = {
+  const body = querystring.stringify(form);
+  const headers = {
     "Content-Length": body.length,
     "Content-Type": "application/x-www-form-urlencoded",
     Referer: "https://music.163.com",
@@ -100,7 +96,7 @@ async function music163(keyword) {
         type: "music",
         data: {
           type: "163",
-          id: jbody["result"]["songs"][0]["id"],
+          id: jbody.result.songs[0].id,
         },
       },
     ];
@@ -110,10 +106,10 @@ async function music163(keyword) {
 }
 
 async function musicID(msg, source) {
-  let [keyword] = msg.split(/(?<=^\S+)\s/).slice(1);
+  const [keyword] = msg.split(/(?<=^\S+)\s/).slice(1);
   const worker = {
-    [MUSICSRC.SRC_QQ]: musicQQ,
-    [MUSICSRC.SRC_163]: music163,
+    [all.functions.options.music_source.qq || "qq"]: musicQQ,
+    [all.functions.options.music_source[163] || "163"]: music163,
   };
 
   if (!(source in worker)) {
@@ -125,19 +121,28 @@ async function musicID(msg, source) {
 
 async function musicSrc(msg, id) {
   let [source] = msg.split(/(?<=^\S+)\s/).slice(1);
-  let data = await db.get("music", "source", { ID: id });
+  const data = await db.get("music", "source", { ID: id });
 
-  if (!Object.values(MUSICSRC).includes(source)) {
-    return false;
-  }
+  if ("string" === typeof source) {
+    source = source.toLowerCase();
 
-  if (undefined === data) {
-    await db.push("music", "source", {
-      ID: id,
-      Source: source,
-    });
-  } else {
-    await db.update("music", "source", { ID: id }, { ...data, Source: source });
+    if (!Object.values(all.functions.options.music_source).includes(source)) {
+      return false;
+    }
+
+    if (undefined === data) {
+      await db.push("music", "source", {
+        ID: id,
+        Source: source,
+      });
+    } else {
+      await db.update(
+        "music",
+        "source",
+        { ID: id },
+        { ...data, Source: source }
+      );
+    }
   }
 
   return source;
