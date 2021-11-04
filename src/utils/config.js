@@ -1,4 +1,4 @@
-/* global all, artifacts, command, config, eggs, master */
+/* global all, alias, artifacts, command, config, eggs, master, rootdir */
 /* eslint no-undef: "error" */
 
 /* ==========================================================================
@@ -29,6 +29,7 @@
  * {
  *   functions: {
  *     type: { hello_world: 'command', eat: 'option' },
+ *     show: { hello_world: true, eat: true },
  *     weights: { hello_world: 9999, eat: 9999 },
  *     name: { hello_world: 'hello world', eat: 'eat' },
  *     usage: { hello_world: undefined, eat: undefined },
@@ -59,13 +60,13 @@
  *   functions:
  *     Hello_World:
  *       type: command
+ *       show: true
  *       weights: 9999
  *       name: hello world
  *       usage:
  *       description: I will say hello to you
  *       entrance:
  *         - ^hello
- *
  * Eat:
  *   enable: true
  *   weights: 9999
@@ -74,6 +75,7 @@
  *   functions:
  *     eat:
  *       type: option
+ *       show: true
  *       weights: 9999
  *       name: eat
  *       usage:
@@ -91,23 +93,17 @@
  * global.config
  * --------------------------------------------------------------------------
  * {
- *   accounts: [
- *     {
- *       qq: 123456789,
- *       password: 123456789,
- *       platform: 5
- *     }
- *   ],
+ *   accounts: [ { qq: 123456789, password: 123456789, platform: 5 } ],
  *   masters: [ 987654321 ],
  *   prefixes: [ null ],
  *   atMe: 1,
  *   atUser: 1,
- *   repeatProb: 1,
+ *   repeatProb: 100,
  *   groupHello: 1,
- *   characterTryGetDetail: 1,
- *   requestInterval: 1,
  *   groupGreetingNew: 1,
  *   friendGreetingNew: 1,
+ *   characterTryGetDetail: 1,
+ *   requestInterval: 1,
  *   cacheAbyEffectTime: 1,
  *   cacheInfoEffectTime: 1,
  *   dbAbyEffectTime: 1,
@@ -119,11 +115,7 @@
  *   greetingDie: '上线了，但又没上。',
  *   greetingHello: '大家好。',
  *   greetingNew: '向你问好。',
- *   menu: {
- *     breakfast: [ '萝卜时蔬汤' ],
- *     lunch: [ '蜜酱胡萝卜煎肉' ],
- *     dinner: [ '渡来禽肉' ]
- *   }
+ *   menu: { breakfast: [ '萝卜时蔬汤' ], lunch: [ '蜜酱胡萝卜煎肉' ], dinner: [ '渡来禽肉' ] }
  * }
  * --------------------------------------------------------------------------
  * ../../config/setting.yml
@@ -177,20 +169,98 @@
  * global.alias
  * --------------------------------------------------------------------------
  * {
- *   '77': '七七',
- *   '冰猫': '迪奥娜',
- *   'dio娜': '迪奥娜',
- *   dio: '迪奥娜'
+ *   character: { '猫': '迪奥娜', 'dio娜': '迪奥娜', dio: '迪奥娜' },
+ *   weapon: { '柴火棍': '护摩之杖', homo: '护摩之杖' },
+ *   all: {
+ *     '猫': '迪奥娜',
+ *     'dio娜': '迪奥娜',
+ *     dio: '迪奥娜',
+ *     '柴火棍': '护摩之杖',
+ *     homo: '护摩之杖'
+ *   },
+ *   characterNames: [ '猫', '迪奥娜', 'dio娜', 'dio' ],
+ *   weaponNames: [ '柴火棍', '护摩之杖', 'homo' ],
+ *   allNames: [
+ *     '猫',     '迪奥娜',
+ *     'dio娜',  'dio',
+ *     '柴火棍', '护摩之杖',
+ *     'homo'
+ *   ]
  * }
  * --------------------------------------------------------------------------
  * ../../config/alias.yml
  * --------------------------------------------------------------------------
- * 迪奥娜:
- *   - 冰猫
- *   - Dio娜
- *   - DIO
- * 七七:
- *   - 77
+ * character:
+ *   迪奥娜:
+ *     - 猫
+ *     - dio娜
+ *     - dio
+ * weapon:
+ *   护摩之杖:
+ *     - 柴火棍
+ *     - homo
+ * ==========================================================================
+ *
+ *
+ * ==========================================================================
+ * global.artifacts
+ * --------------------------------------------------------------------------
+ * {
+ *   weights: [
+ *     [ 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0 ],
+ *     [ 0, 0, 0, 0 ]
+ *   ],
+ *   values: [
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+ *     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   ],
+ *   artifacts: {
+ *     id: { '悠古的磐岩': 0 },
+ *     rarity: { '0': 5 },
+ *     suit: { '0': '悠古的磐岩' },
+ *     names: { '0': [ '盘陀裂生之花', '嵯峨群峰之翼', '星罗圭壁之晷', '巉岩琢塑之樽', '不动玄石之相' ] }
+ *   },
+ *   domains: {
+ *     id: { '世界boss挑战': 0 },
+ *     name: { '0': '世界boss挑战' },
+ *     alias: { boss: '世界boss挑战' },
+ *     aliasOf: { '0': [ 'boss' ] },
+ *     product: { '0': [ 4, 13 ] }
+ *   }
+ * }
+ * --------------------------------------------------------------------------
+ * ../../config/artifacts.yml
+ * --------------------------------------------------------------------------
+ * weights:
+ *   - [ 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0 ]
+ *   - [ 0, 0, 0, 0 ]
+ * values:
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ *   - [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+ * artifacts:
+ *   - id: 0
+ *     rarity: 5
+ *     suit: 悠古的磐岩
+ *     names: [ 盘陀裂生之花, 嵯峨群峰之翼, 星罗圭壁之晷, 巉岩琢塑之樽, 不动玄石之相 ]
+ * domains:
+ *   - id: 0
+ *     name: 世界BOSS挑战
+ *     alias: [ boss ]
+ *     product: [ 4, 13 ]
  * ==========================================================================
  *
  *
@@ -216,59 +286,44 @@
  *
  *
  * ==========================================================================
- * global.artifacts
- * --------------------------------------------------------------------------
- * {
- *   domains: {
- *     name: {
- *      '铭记之谷': 2
- *     },
- *     alias: {
- *       '风本': '铭记之谷',
- *       '奶本': '铭记之谷',
- *       '风奶本': '铭记之谷'
- *     }
- *   }
- * }
- * --------------------------------------------------------------------------
- * ../../config/artifacts.yml
- * --------------------------------------------------------------------------
- * domains:
- *   -
- *     id: 2
- *     name: 铭记之谷
- *     alias: [ 风本, 奶本, 风奶本 ]
- *     product: [ 7, 12 ]
- * ==========================================================================
- *
- *
- * ==========================================================================
  *                            以上为数据结构
  * ========================================================================== */
 
 import lodash from "lodash";
 import url from "url";
 import path from "path";
+import fs from "fs";
+import { mkdir } from "./file.js";
 import { loadYML } from "./yaml.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const Setting = loadYML("setting");
-const Cookies = loadYML("cookies");
-const Greeting = loadYML("greeting");
-const Command = loadYML("command");
-const Master = loadYML("command_master");
+global.alias = {};
+global.all = {};
+global.artifacts = {};
+global.command = {};
+global.config = {};
+global.eggs = {};
+global.master = {};
+global.rootdir = path.resolve(__dirname, "..", "..");
+
 const Alias = loadYML("alias");
-const Menu = loadYML("menu");
-const Eggs = loadYML("pool_eggs");
 const Artifacts = loadYML("artifacts");
+const Command = loadYML("command");
+const Cookies = loadYML("cookies");
+const Eggs = loadYML("pool_eggs");
+const Greeting = loadYML("greeting");
+const Master = loadYML("command_master");
+const Menu = loadYML("menu");
+const Setting = loadYML("setting");
 
 // global[key].enable                -> plugin (lowercase):    is_enabled (boolean)
 // global[key].weights               -> plugin (lowercase):    weights (number)
 // global[key].regex                 -> regex (lowercase):     plugin (string)
 // global[key].function              -> function (lowercase):  plugin (array of string, lowercase)
 // global[key].functions.type        -> function (lowercase):  type (string)
+// global[key].functions.show        -> function (lowercase):  is_show (boolean)
 // global[key].functions.weights     -> function (lowercase):  weights (number)
 // global[key].functions.name        -> function (lowercase):  name (string)
 // global[key].functions.usage       -> function (lowercase):  usage (string)
@@ -276,44 +331,53 @@ const Artifacts = loadYML("artifacts");
 // global[key].functions.entrance    -> function (lowercase):  entrance (array of string, lowercase)
 // global[key].functions.option      -> function (lowercase):  option (array of object, lowercase)
 function getCommand(obj, key) {
-  const map = (
-    object,
+  const reduce = (
+    obj,
     key,
     lowercase = [false, false],
     defaultValue = undefined,
     revert = false
   ) =>
     lodash.reduce(
-      object,
-      (pair, v, k) => {
+      obj,
+      (p, v, k) => {
         if (key) {
           let p1 = k;
           let p2 = v[key];
 
-          lowercase[0] && (p1 = "string" === typeof k ? k.toLowerCase() : k);
-          lowercase[1] &&
-            (p2 = "string" === typeof v[key] ? v[key].toLowerCase() : v[key]);
+          if (true === lowercase[0]) {
+            p1 = "string" === typeof k ? k.toLowerCase() : k;
+          }
+          if (true === lowercase[1]) {
+            p2 = "string" === typeof v[key] ? v[key].toLowerCase() : v[key];
+          }
 
           if (true === revert) {
-            p2 && (pair[p2] = p1);
+            if (undefined !== p2) {
+              p[p2] = p1;
+            }
           } else {
-            p1 && (pair[p1] = p2 || defaultValue);
+            if (undefined !== p1) {
+              p[p1] = undefined === p2 ? defaultValue : p2;
+            }
           }
-          return pair;
+
+          return p;
         }
       },
       {}
     );
-  const mapSub = (
-    object,
+
+  const deepReduce = (
+    obj,
     key,
     lowercase = [false, false],
     defaultValue = undefined,
     revert = false
   ) =>
     lodash.reduce(
-      object,
-      (pair, v, k) => {
+      obj,
+      (p, v, k) => {
         if (key) {
           (v[key]
             ? Array.isArray(v[key])
@@ -335,27 +399,37 @@ function getCommand(obj, key) {
                 });
               }
             };
-            let p1 = lowercase[0] ? transToLowerCase(k) : k;
-            let p2 = lowercase[1] ? transToLowerCase(c) : c;
+            let p1 = true === lowercase[0] ? transToLowerCase(k) : k;
+            let p2 = true === lowercase[1] ? transToLowerCase(c) : c;
 
             if (true === revert) {
-              p2 && (pair[p2] || (pair[p2] = [])).push(p1);
+              if (undefined !== p2) {
+                (undefined === p[p2] ? (p[p2] = []) : p[p2]).push(p1);
+              }
             } else {
-              p1 && (pair[p1] || (pair[p1] = [])).push(p2 || defaultValue);
+              if (undefined !== p1) {
+                (undefined === p[p1] ? (p[p1] = []) : p[p1]).push(
+                  undefined === p2 ? defaultValue : p2
+                );
+              }
             }
           });
-          return pair;
+          return p;
         }
       },
       {}
     );
 
-  global[key] = {};
+  if (!["command", "master"].includes(key)) {
+    return;
+  }
+
+  global[key].enable = reduce(obj, "enable", [true, false], false);
+  global[key].weights = reduce(obj, "weights", [true, false], 0);
+  global[key].regex = deepReduce(obj, "regex", [true, false], undefined, true);
+  global[key].function = deepReduce(obj, "functions", [true, true]);
+
   global[key].functions = {};
-  global[key].enable = map(obj, "enable", [true, false], false);
-  global[key].weights = map(obj, "weights", [true, false], 0);
-  global[key].regex = mapSub(obj, "regex", [true, false], undefined, true);
-  global[key].function = mapSub(obj, "functions", [true, true]);
 
   for (const name in obj) {
     const add = (obj, key, name, prop, callback, ...rest) => {
@@ -365,75 +439,82 @@ function getCommand(obj, key) {
       );
     };
 
-    add(obj, key, name, "type", map, [true, false], 0);
-    add(obj, key, name, "weights", map, [true, false], 0);
-    add(obj, key, name, "name", map, [true, false]);
-    add(obj, key, name, "usage", map, [true, false]);
-    add(obj, key, name, "description", map, [true, false]);
-    add(obj, key, name, "entrance", mapSub, [true, true]);
-    add(obj, key, name, "options", mapSub, [true, true]);
+    add(obj, key, name, "type", reduce, [true, false], 0);
+    add(obj, key, name, "show", reduce, [true, false], true);
+    add(obj, key, name, "weights", reduce, [true, false], 0);
+    add(obj, key, name, "name", reduce, [true, false]);
+    add(obj, key, name, "usage", reduce, [true, false]);
+    add(obj, key, name, "description", reduce, [true, false]);
+    add(obj, key, name, "entrance", deepReduce, [true, true]);
+    add(obj, key, name, "options", deepReduce, [true, true]);
   }
 
   global[key].function = lodash.reduce(
     global[key].function,
-    (pair, v, k) => {
-      v.forEach((c) => (pair[k] || (pair[k] = [])).push(c[0]));
-      return pair;
+    (p, v, k) => {
+      v.forEach((c) => (p[k] || (p[k] = [])).push(c[0]));
+      return p;
     },
     {}
   );
 
   global[key].functions.options = lodash.reduce(
     global[key].functions.options,
-    (pair, v, k) => {
+    (p, v, k) => {
       v.forEach((c) => {
         c[1] = c[1].toString();
-        lodash.assign(pair[k] || (pair[k] = {}), {
+        lodash.assign(p[k] || (p[k] = {}), {
           [c[0]]: "string" === typeof c[1] ? c[1].toLowerCase() : c[1],
         });
       });
-      return pair;
+      return p;
     },
     {}
   );
 
   // 所有 switch 转换为 option
   // https://github.com/Arondight/Adachi-BOT/issues/242
-  Object.keys(global[key].functions.type).forEach((f) => {
-    if ("switch" === global[key].functions.type[f]) {
-      global[key].functions.type[f] = "option";
-      global[key].functions.options[f] = lodash.assign(
-        { on: "on" },
-        { off: "off" },
-        global[key].functions.options[f] || {}
-      );
-    }
-  });
+  if (global[key].functions.type) {
+    Object.keys(global[key].functions.type).forEach((f) => {
+      if ("switch" === global[key].functions.type[f]) {
+        global[key].functions.type[f] = "option";
+        global[key].functions.options[f] = lodash
+          .chain({})
+          .assign(
+            { on: "on" },
+            { off: "off" },
+            global[key].functions.options[f] || {}
+          )
+          .pick(["on", "off"])
+          .value();
+      }
+    });
+  }
 }
 
-// object: command or master
-function makeUsage(object) {
-  if (!(object === command || object === master)) {
+// obj: command or master
+function makeUsage(obj) {
+  if (!(obj === command || obj === master)) {
     return "";
   }
 
   const listMark = "🔘";
   const commentMark = "👉";
   const pluginList = new Map(
-    Object.entries(object.weights).sort((a, b) => b[1] - a[1])
+    Object.entries(obj.weights).sort((a, b) => b[1] - a[1])
   );
   let text = "";
 
   for (const plugin of pluginList.keys()) {
     let functionWeights = {};
 
-    if (!object.enable[plugin]) {
+    if (!obj.enable[plugin]) {
       continue;
     }
 
-    for (const k in object.functions.weights) {
-      if (object.function[plugin].includes(k)) {
-        functionWeights[k] = object.functions.weights[k];
+    for (const k in obj.functions.weights) {
+      if (obj.function[plugin].includes(k)) {
+        functionWeights[k] = obj.functions.weights[k];
       }
     }
 
@@ -442,25 +523,22 @@ function makeUsage(object) {
     );
 
     for (const func of functionList.keys()) {
-      if (object.functions.name[func]) {
-        const type = object.functions.type[func] || "command";
+      if (true === obj.functions.show[func] && obj.functions.name[func]) {
+        const type = obj.functions.type[func] || "command";
 
         text +=
           listMark +
           " " +
-          object.functions.name[func] +
+          obj.functions.name[func] +
           " " +
-          (object.functions.usage[func]
-            ? object.functions.usage[func] + " "
-            : "") +
+          (obj.functions.usage[func] ? obj.functions.usage[func] + " " : "") +
           ("option" === type
-            ? (object.functions.options[func] &&
-                "<" +
-                  Object.values(object.functions.options[func]).join("、")) +
+            ? (obj.functions.options[func] &&
+                "<" + Object.values(obj.functions.options[func]).join("、")) +
               "> "
             : "") +
-          (object.functions.description[func] ? commentMark + " " : "") +
-          (object.functions.description[func] || "") +
+          (obj.functions.description[func] ? commentMark + " " : "") +
+          (obj.functions.description[func] || "") +
           "\n";
       }
     }
@@ -470,11 +548,7 @@ function makeUsage(object) {
     ? "-------------------\n<> 表示必填，[] 表示可选，前面需加空格"
     : "我什么都不会哦。";
 
-  object.usage = text;
-}
-
-function setRootDir() {
-  global.rootdir = path.resolve(__dirname, "..", "..");
+  obj.usage = text;
 }
 
 // global.config
@@ -539,13 +613,11 @@ function readSettingCookiesGreetingMenu() {
   const greetingNew = Greeting.new;
   const menu = Menu;
 
-  global.config = {};
-
   const getConfig = (...pairs) => {
     pairs &&
-      pairs.forEach((pair) => {
-        const prop = Object.keys(pair)[0];
-        const val = pair[prop];
+      pairs.forEach((p) => {
+        const prop = Object.keys(p)[0];
+        const val = p[prop];
 
         if (undefined === defaultConfig[prop]) {
           config[prop] = val;
@@ -611,61 +683,156 @@ function readSettingCookiesGreetingMenu() {
   );
 }
 
-// global.alias ->  alias (lowercase): name (string)
+// global.alias.character       ->  alias (lowercase): character (string, lowercase)
+// global.alias.weapon          ->  alias (lowercase): weapon (string, lowercase)
+// global.alias.all             ->  alias (lowercase): name (string, lowercase)
+// global.alias.characterNames  ->  character names (array of string, lowercase)
+// global.alias.weaponNames     ->  weapon names (array of string, lowercase)
+// global.alias.allNames        ->  names (array of string, lowercase)
 function readAlias() {
-  global.alias = lodash.reduce(
-    Alias,
-    (pair, v, k) => {
-      (v || []).forEach(
-        (c) => (pair["string" === typeof c ? c.toLowerCase() : c] = k)
-      );
-      return pair;
-    },
-    {}
-  );
+  const getSection = (s) =>
+    lodash.reduce(
+      Alias[s] || {},
+      (p, v, k) => {
+        (v || []).forEach(
+          (c) => (p["string" === typeof c ? c.toLowerCase() : c] = k)
+        );
+        return p;
+      },
+      {}
+    );
+  const getNames = (o) => lodash.chain(o).toPairs().flatten().uniq().value();
+
+  alias.character = getSection("character");
+  alias.weapon = getSection("weapon");
+  alias.all = lodash.assign({}, alias.character, alias.weapon);
+  alias.characterNames = getNames(alias.character);
+  alias.weaponNames = getNames(alias.weapon);
+  alias.allNames = getNames(alias.all);
 }
 
 // eggs.type: name -> type (string)
 // eggs.star: name -> type (string)
 function readEggs() {
-  global.eggs = {};
   eggs.type = {};
   eggs.star = {};
 
   Array.isArray(Eggs.items) &&
     Eggs.items.forEach((c) => {
       if (Array.isArray(c.names)) {
-        const star = parseInt(c.star) || 3;
+        const star = parseInt(c.star) || 5;
         c.type && c.names.forEach((n) => (eggs.type[n] = c.type));
         c.names.forEach((n) => (eggs.star[n] = star));
       }
     });
 }
 
-// artifacts.domains.name -> name (lowercase): id (number)
-// artifacts.domains.alias -> alias (lowercase): name (string, lowercase)
+// artifacts.weights          -> weights (array of array of number)
+// artifacts.values           -> values (array of array of number)
+// artifacts.artifacts.id     -> suit (lowercase):  id (number)
+// artifacts.artifacts.rarity -> id:                rarity (number)
+// artifacts.artifacts.suit   -> id:                suit (string, lowercase)
+// artifacts.artifacts.names  -> id:                names (array of string, lowercase)
+// artifacts.domains.id       -> name (lowercase):  id (number)
+// artifacts.domains.name     -> id:                name (string, lowercase)
+// artifacts.domains.alias    -> alias (lowercase): name (string, lowercase)
+// artifacts.domains.aliasOf  -> id:                alias (array of string, lowercase)
+// artifacts.domains.product  -> id:                product (array of number)
 function readArtifacts() {
-  global.artifacts = {};
-  artifacts.domains = {};
-  artifacts.domains.name = lodash.reduce(
-    Artifacts.domains || [],
-    (pair, v) => {
-      pair["string" === typeof v.name ? v.name.toLowerCase() : v.name] = v.id;
-      return pair;
-    },
-    {}
+  const reduce = (
+    prop,
+    key = [undefined, undefined],
+    lowercase = [false, false]
+  ) =>
+    key.includes(undefined) ||
+    lodash.reduce(
+      Artifacts[prop] || [],
+      (p, v) => {
+        let p1 = v[key[0]];
+        let p2 = v[key[1]];
+
+        if (true === lowercase[0]) {
+          p1 = "string" === typeof p1 ? p1.toLowerCase() : p1;
+        }
+        if (true === lowercase[1]) {
+          p2 =
+            "string" === typeof p2
+              ? p2.toLowerCase()
+              : Array.isArray(p2)
+              ? p2.map((c) => c.toLowerCase())
+              : p2;
+        }
+
+        p[p1] = p2;
+        return p;
+      },
+      {}
+    );
+  const deepReduce = (
+    prop,
+    key = [undefined, undefined],
+    lowercase = [false, false]
+  ) =>
+    key.includes(undefined) ||
+    lodash.reduce(
+      Artifacts[prop] || [],
+      (p, v) => {
+        (v[key[0]] || []).forEach((c) => {
+          (Array.isArray(c) ? c : [c]).forEach((c) => {
+            let p1 = c;
+            let p2 = v[key[1]];
+
+            if (true === lowercase[0]) {
+              p1 = "string" === typeof p1 ? p1.toLowerCase() : p1;
+            }
+            if (true === lowercase[1]) {
+              p2 =
+                "string" === typeof p2
+                  ? p2.toLowerCase()
+                  : Array.isArray(p2)
+                  ? p2.map((c) => c.toLowerCase())
+                  : p2;
+            }
+
+            p[p1] = p2;
+          });
+        });
+        return p;
+      },
+      {}
+    );
+
+  artifacts.weights = Artifacts.weights;
+
+  artifacts.values = Artifacts.values;
+
+  artifacts.artifacts = {};
+  artifacts.artifacts.id = reduce("artifacts", ["suit", "id"], [true, false]);
+  artifacts.artifacts.rarity = reduce(
+    "artifacts",
+    ["id", "rarity"],
+    [false, false]
   );
-  artifacts.domains.alias = lodash.reduce(
-    Artifacts.domains || [],
-    (pair, v) => {
-      (v.alias || []).forEach(
-        (c) =>
-          (pair["string" === typeof c ? c.toLowerCase() : c] =
-            "string" === typeof v.name ? v.name.toLowerCase() : v.name)
-      );
-      return pair;
-    },
-    {}
+  artifacts.artifacts.suit = reduce("artifacts", ["id", "suit"], [false, true]);
+  artifacts.artifacts.names = reduce(
+    "artifacts",
+    ["id", "names"],
+    [false, true]
+  );
+
+  artifacts.domains = {};
+  artifacts.domains.id = reduce("domains", ["name", "id"], [true, false]);
+  artifacts.domains.name = reduce("domains", ["id", "name"], [false, true]);
+  artifacts.domains.alias = deepReduce(
+    "domains",
+    ["alias", "name"],
+    [true, true]
+  );
+  artifacts.domains.aliasOf = reduce("domains", ["id", "alias"], [false, true]);
+  artifacts.domains.product = reduce(
+    "domains",
+    ["id", "product"],
+    [false, false]
   );
 }
 
@@ -692,9 +859,9 @@ function getAll() {
     }
   };
 
-  global.all = {};
-  global.all.functions = {};
+  all.functions = {};
   all.functions.options = lodash.assign(
+    {},
     command.functions.options,
     master.functions.options
   );
@@ -715,15 +882,27 @@ function getUsage() {
   makeUsage(master);
 }
 
+// For /src/views/*
+function writeViewsConfig() {
+  const dir = path.join(rootdir, "data", "config");
+  const data = { rootdir };
+
+  fs.writeFileSync(
+    path.resolve(mkdir(dir), "views.json"),
+    JSON.stringify(data),
+    "utf8"
+  );
+}
+
 async function readConfig() {
-  setRootDir();
   readSettingCookiesGreetingMenu();
-  readCommand();
   readAlias();
   readEggs();
   readArtifacts();
-  getUsage();
+  readCommand();
   getAll();
+  getUsage();
+  writeViewsConfig();
 }
 
 function hasEntrance(message, plugin, ...entrance) {

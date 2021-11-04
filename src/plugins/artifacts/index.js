@@ -67,10 +67,10 @@ async function Plugin(Message, bot) {
     if (!id) {
       const text = arg.toLowerCase();
       const name = artifacts.domains.alias[text] || text;
-      id = artifacts.domains.name[name];
+      id = artifacts.domains.id[name];
     }
 
-    if (id && id < domainMax() + 1) {
+    if (undefined !== id && id < domainMax() + 1) {
       await getArtifact(userID, parseInt(id));
       data = ((await db.get("artifact", "user", { userID })) || {}).initial;
     } else {
@@ -84,7 +84,7 @@ async function Plugin(Message, bot) {
     }
   }
 
-  await render(data, "genshin-artifact", sendID, type, userID, bot);
+  await render(data, "genshin-artifact", sendID, type, userID, bot, 1.2);
 }
 
 async function Wrapper(Message, bot) {

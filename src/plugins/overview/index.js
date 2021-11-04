@@ -1,9 +1,20 @@
 /* global alias */
 /* eslint no-undef: "error" */
 
+import lodash from "lodash";
 import { render } from "../../utils/render.js";
 import { hasAuth, sendPrompt } from "../../utils/auth.js";
 import { getInfo } from "../../utils/api.js";
+import { guessPossibleNames } from "../../utils/tools.js";
+
+function getNotFoundText(text) {
+  const guess = guessPossibleNames(text, alias.allNames);
+  const notFoundText = `查询失败，未知的名称${text}。${
+    guess ? "\n您要查询的是不是：\n" + guess : ""
+  }`;
+
+  return notFoundText;
+}
 
 async function Plugin(Message, bot) {
   const msg = Message.raw_message;
@@ -12,7 +23,7 @@ async function Plugin(Message, bot) {
   const type = Message.type;
   const name = Message.sender.nickname;
   const sendID = "group" === type ? groupID : userID;
-  const [text] = msg.split(/(?<=^\S+)\s/).slice(1);
+  let [text] = msg.split(/(?<=^\S+)\s/).slice(1);
   let data;
 
   if (
@@ -28,21 +39,16 @@ async function Plugin(Message, bot) {
     return;
   }
 
+  text = "string" === typeof text ? text.toLowerCase() : "";
+
   try {
-    data = await getInfo(
-      alias["string" === typeof text ? text.toLowerCase() : text] || text
-    );
+    data = await getInfo(alias.all[text] || text);
   } catch (e) {
-    await bot.sendMessage(
-      sendID,
-      "查询失败，请检查名称是否正确。",
-      type,
-      userID
-    );
+    await bot.sendMessage(sendID, getNotFoundText(text), type, userID);
     return;
   }
 
-  await render(data, "genshin-overview", sendID, type, userID, bot);
+  await render(data, "genshin-overview", sendID, type, userID, bot, 2);
 }
 
 async function Wrapper(Message, bot) {
