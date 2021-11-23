@@ -2,7 +2,6 @@
 /* eslint no-undef: "error" */
 
 import fs from "fs";
-import url from "url";
 import path from "path";
 
 function readlink(filepath) {
@@ -56,4 +55,4 @@ function du(filepath) {
   return size;
 }
 
-export { readlink, mkdir, ls, du };
+export { du, ls, mkdir, readlink };

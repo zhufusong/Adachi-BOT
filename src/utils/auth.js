@@ -1,27 +1,49 @@
+/* global command */
+/* eslint no-undef: "error" */
+
 import db from "./database.js";
 
-async function sendPrompt(sendID, userID, name, auth, type, bot) {
-  await bot.sendMessage(sendID, `您当前无${auth}权限。`, type, userID);
+function hasAuth(id, func) {
+  const data = db.get("authority", "user", { userID: id }) || {};
+  return data[func] && true === data[func];
 }
 
-async function setAuth(auth, target, isOn) {
-  const data = await db.get("authority", "user", { userID: target });
+function setAuth(msg, func, id, isOn, report = true) {
+  const name = command.functions.name[func] ? `【${command.functions.name[func]}】` : func;
+  const text = `我已经开始${isOn ? "允许" : "禁止"} ${id} 的${name}功能！`;
+  const data = db.get("authority", "user", { userID: id });
 
   if (undefined === data) {
-    await db.push("authority", "user", { userID: target, [auth]: isOn });
+    db.push("authority", "user", { userID: id, [func]: isOn });
   } else {
-    await db.update(
-      "authority",
-      "user",
-      { userID: target },
-      { ...data, [auth]: isOn }
-    );
+    db.update("authority", "user", { userID: id }, { ...data, [func]: isOn });
+  }
+
+  if (true === report && undefined !== msg.bot) {
+    msg.bot.sayMaster(msg.sid, text, msg.type, msg.uid);
   }
 }
 
-async function hasAuth(userID, auth) {
-  const data = await db.get("authority", "user", { userID });
-  return undefined === data || undefined === data[auth] || true === data[auth];
+// 返回值：
+//    true:      有权限
+//    false:     没权限
+//    undefined: 没设置权限
+function checkAuth(msg, func, report = true) {
+  const uauth = hasAuth(msg.uid, func);
+  const gauth = hasAuth(msg.sid, func);
+
+  if (undefined == uauth && undefined === gauth) {
+    return undefined;
+  }
+
+  if (false === uauth || false === gauth) {
+    if (true === report && undefined !== msg.bot) {
+      msg.bot.say(msg.sid, `您当前无【${command.functions.name[func]}】权限。`, msg.type, msg.uid, true);
+    }
+    return false;
+  }
+
+  return true;
 }
 
-export { sendPrompt, setAuth, hasAuth };
+export { checkAuth, setAuth };

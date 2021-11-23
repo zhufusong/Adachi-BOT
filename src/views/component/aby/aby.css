@@ -67,9 +67,6 @@ body {
   justify-content: space-between;
 }
 
-.container-horizontal.char-side {
-}
-
 .char-rounded {
   margin-right: 10px;
   min-width: 58px;
@@ -220,9 +217,6 @@ body {
   justify-content: flex-end;
 }
 
-.celtic-triangle {
-}
-
 .background-general.star-4,
 .background-rounded.star-4 {
   background: linear-gradient(135deg, hsl(249, 32%, 57%), hsl(265, 41%, 61%));
@@ -243,11 +237,11 @@ body {
 }
 
 .avatar-rounded {
-  zoom: 20%;
+  zoom: 21%;
   position: relative;
-  transform: translateY(34px);
+  transform: translateY(12px);
   object-fit: cover;
-  clip-path: circle(121px at 128px 86px);
+  clip-path: circle(115px at 128px 104px);
 }
 
 .description-general {
@@ -376,8 +370,6 @@ div.credit {
 }
 
 .banner-placeholder {
-  position: absolute;
-  top: 0;
   height: 30px;
 }
 

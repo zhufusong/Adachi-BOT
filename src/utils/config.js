@@ -41,13 +41,13 @@
  *   weights: { hello_world: 9999, eat: 9999 },
  *   regex: {
  *     '^hello\\sworld(!)?\\s*$': [ 'hello_world' ],
- *     '^eat\\S+\\s*$': [ 'eat' ]
+ *     '^eat\\s*\\S+\\s*$': [ 'eat' ]
  *   },
  *   function: { hello_world: [ 'hello_world' ], eat: [ 'eat' ] },
  *   usage: '🔘 hello world 👉 I will say hello to you\n' +
  *     '🔘 eat <苹果、香蕉、蛋> 👉 What to eat\n' +
  *     '-------------------\n' +
- *     '<> 表示必填，[] 表示可选，前面需加空格'
+ *     '<> 表示必填，[] 表示可选'
  * }
  * --------------------------------------------------------------------------
  * ../../config/command*.yml
@@ -71,7 +71,7 @@
  *   enable: true
  *   weights: 9999
  *   regex:
- *     - ^eat\S+\s*$
+ *     - ^eat\s*\S+\s*$
  *   functions:
  *     eat:
  *       type: option
@@ -103,7 +103,8 @@
  *   groupGreetingNew: 1,
  *   friendGreetingNew: 1,
  *   characterTryGetDetail: 1,
- *   requestInterval: 1,
+ *   requestInterval: 0,
+ *   deleteGroupMsgTime: 0,
  *   cacheAbyEffectTime: 1,
  *   cacheInfoEffectTime: 1,
  *   dbAbyEffectTime: 1,
@@ -134,7 +135,8 @@
  * groupGreetingNew: 1
  * friendGreetingNew: 1
  * characterTryGetDetail: 1
- * requestInterval: 1
+ * requestInterval: 0
+ * deleteGroupMsgTime: 0
  * prefixes:
  *   -
  * cacheAbyEffectTime: 1
@@ -169,36 +171,42 @@
  * global.alias
  * --------------------------------------------------------------------------
  * {
- *   character: { '猫': '迪奥娜', 'dio娜': '迪奥娜', dio: '迪奥娜' },
- *   weapon: { '柴火棍': '护摩之杖', homo: '护摩之杖' },
+ *   character: { '猫': '迪奥娜', dio: '迪奥娜', '迪奥娜': '迪奥娜' },
+ *   weapon: { '柴火棍': '护摩之杖', homo: '护摩之杖', '护摩之杖': '护摩之杖' },
  *   all: {
  *     '猫': '迪奥娜',
- *     'dio娜': '迪奥娜',
  *     dio: '迪奥娜',
+ *     '迪奥娜': '迪奥娜',
  *     '柴火棍': '护摩之杖',
- *     homo: '护摩之杖'
+ *     homo: '护摩之杖',
+ *     '护摩之杖': '护摩之杖'
  *   },
- *   characterNames: [ '猫', '迪奥娜', 'dio娜', 'dio' ],
- *   weaponNames: [ '柴火棍', '护摩之杖', 'homo' ],
- *   allNames: [
- *     '猫',     '迪奥娜',
- *     'dio娜',  'dio',
- *     '柴火棍', '护摩之杖',
- *     'homo'
- *   ]
+ *   characterNames: {
+ *     '猫': '0000101110010000100001000000100000000010000000000000100000000000',
+ *     '迪奥娜': '1010111110111001110000000100110010000110100000011010100000000000',
+ *     dio: '1100101010101000001000110001100011110100011011100011000000000000'
+ *   },
+ *   weaponNames: {
+ *     '柴火棍': '1010111110000001110000000100110010000110000000101001000000000000',
+ *     '护摩之杖': '1010111110000111000001000100110010000110001111110101000000000000',
+ *     homo: '0100000000101101000100011100110001111110011011111000110000000000'
+ *   },
+ *   allNames: {
+ *     '猫': '0000101110010000100001000000100000000010000000000000100000000000',
+ *     '迪奥娜': '1010111110111001110000000100110010000110100000011010100000000000',
+ *     dio: '1100101010101000001000110001100011110100011011100011000000000000',
+ *     '柴火棍': '1010111110000001110000000100110010000110000000101001000000000000',
+ *     '护摩之杖': '1010111110000111000001000100110010000110001111110101000000000000',
+ *     homo: '0100000000101101000100011100110001111110011011111000110000000000'
+ *   }
  * }
  * --------------------------------------------------------------------------
  * ../../config/alias.yml
  * --------------------------------------------------------------------------
  * character:
- *   迪奥娜:
- *     - 猫
- *     - dio娜
- *     - dio
+ *   迪奥娜: [ 猫, dio ]
  * weapon:
- *   护摩之杖:
- *     - 柴火棍
- *     - homo
+ *   护摩之杖: [ 柴火棍, homo ]
  * ==========================================================================
  *
  *
@@ -289,11 +297,12 @@
  *                            以上为数据结构
  * ========================================================================== */
 
-import lodash from "lodash";
 import url from "url";
 import path from "path";
 import fs from "fs";
+import lodash from "lodash";
 import { mkdir } from "./file.js";
+import { simhash } from "./tools.js";
 import { loadYML } from "./yaml.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
@@ -329,15 +338,9 @@ const Setting = loadYML("setting");
 // global[key].functions.usage       -> function (lowercase):  usage (string)
 // global[key].functions.description -> function (lowercase):  description (string)
 // global[key].functions.entrance    -> function (lowercase):  entrance (array of string, lowercase)
-// global[key].functions.option      -> function (lowercase):  option (array of object, lowercase)
+// global[key].functions.options     -> function (lowercase):  { { option: text } } (both lowercase)
 function getCommand(obj, key) {
-  const reduce = (
-    obj,
-    key,
-    lowercase = [false, false],
-    defaultValue = undefined,
-    revert = false
-  ) =>
+  const reduce = (obj, key, lowercase = [false, false], defaultValue = undefined, revert = false) =>
     lodash.reduce(
       obj,
       (p, v, k) => {
@@ -368,34 +371,20 @@ function getCommand(obj, key) {
       {}
     );
 
-  const deepReduce = (
-    obj,
-    key,
-    lowercase = [false, false],
-    defaultValue = undefined,
-    revert = false
-  ) =>
+  const deepReduce = (obj, key, lowercase = [false, false], defaultValue = undefined, revert = false) =>
     lodash.reduce(
       obj,
       (p, v, k) => {
         if (key) {
-          (v[key]
-            ? Array.isArray(v[key])
-              ? v[key]
-              : Object.entries(v[key] || {})
-            : []
-          ).forEach((c) => {
+          (v[key] ? (Array.isArray(v[key]) ? v[key] : Object.entries(v[key] || {})) : []).forEach((c) => {
             const transToLowerCase = (o) => {
               if ("string" === typeof o) {
                 return o.toLowerCase();
               } else if (Array.isArray(o)) {
-                return lodash.transform(o, (r, c) =>
-                  r.push("string" === typeof c ? c.toLowerCase() : c)
-                );
+                return lodash.transform(o, (r, c) => r.push("string" === typeof c ? c.toLowerCase() : c));
               } else {
                 return lodash.transform(o, (r, v, k) => {
-                  r[(k = "string" === typeof k ? k.toLowerCase() : k)] =
-                    "string" === typeof v ? v.toLowerCase() : v;
+                  r[(k = "string" === typeof k ? k.toLowerCase() : k)] = "string" === typeof v ? v.toLowerCase() : v;
                 });
               }
             };
@@ -408,9 +397,7 @@ function getCommand(obj, key) {
               }
             } else {
               if (undefined !== p1) {
-                (undefined === p[p1] ? (p[p1] = []) : p[p1]).push(
-                  undefined === p2 ? defaultValue : p2
-                );
+                (undefined === p[p1] ? (p[p1] = []) : p[p1]).push(undefined === p2 ? defaultValue : p2);
               }
             }
           });
@@ -480,11 +467,7 @@ function getCommand(obj, key) {
         global[key].functions.type[f] = "option";
         global[key].functions.options[f] = lodash
           .chain({})
-          .assign(
-            { on: "on" },
-            { off: "off" },
-            global[key].functions.options[f] || {}
-          )
+          .assign({ on: "on" }, { off: "off" }, global[key].functions.options[f] || {})
           .pick(["on", "off"])
           .value();
       }
@@ -500,9 +483,7 @@ function makeUsage(obj) {
 
   const listMark = "🔘";
   const commentMark = "👉";
-  const pluginList = new Map(
-    Object.entries(obj.weights).sort((a, b) => b[1] - a[1])
-  );
+  const pluginList = new Map(Object.entries(obj.weights).sort((a, b) => b[1] - a[1]));
   let text = "";
 
   for (const plugin of pluginList.keys()) {
@@ -518,9 +499,7 @@ function makeUsage(obj) {
       }
     }
 
-    const functionList = new Map(
-      Object.entries(functionWeights).sort((a, b) => b[1] - a[1])
-    );
+    const functionList = new Map(Object.entries(functionWeights).sort((a, b) => b[1] - a[1]));
 
     for (const func of functionList.keys()) {
       if (true === obj.functions.show[func] && obj.functions.name[func]) {
@@ -533,9 +512,7 @@ function makeUsage(obj) {
           " " +
           (obj.functions.usage[func] ? obj.functions.usage[func] + " " : "") +
           ("option" === type
-            ? (obj.functions.options[func] &&
-                "<" + Object.values(obj.functions.options[func]).join("、")) +
-              "> "
+            ? (obj.functions.options[func] && "<" + Object.values(obj.functions.options[func]).join("、")) + "> "
             : "") +
           (obj.functions.description[func] ? commentMark + " " : "") +
           (obj.functions.description[func] || "") +
@@ -544,9 +521,7 @@ function makeUsage(obj) {
     }
   }
 
-  text += text
-    ? "-------------------\n<> 表示必填，[] 表示可选，前面需加空格"
-    : "我什么都不会哦。";
+  text += text ? "-------------------\n<> 表示必填，[] 表示可选" : "我什么都不会哦。";
 
   obj.usage = text;
 }
@@ -571,8 +546,12 @@ function readSettingCookiesGreetingMenu() {
     friendGreetingNew: 0,
     // 角色查询不尝试拉取数据
     characterTryGetDetail: 0,
+    // 耗时操作前不发送提示
+    warnTimeCosts: 0,
     // 不对用户的使用频率作出限制
     requestInterval: 0,
+    // 不尝试撤回发送的群消息
+    deleteGroupMsgTime: 0,
     // 深渊记录缓存一小时
     cacheAbyEffectTime: 1,
     // 玩家数据缓存一小时
@@ -581,6 +560,8 @@ function readSettingCookiesGreetingMenu() {
     dbAbyEffectTime: 1,
     // 数据库 info 的数据有效性为一星期
     dbInfoEffectTime: 168,
+    // 不使用前端调试模式
+    viewDebug: 0,
   };
 
   // 用于兼容旧配置，已经被 accounts 取代
@@ -597,16 +578,15 @@ function readSettingCookiesGreetingMenu() {
   const groupGreetingNew = parseInt(Setting.groupGreetingNew);
   const friendGreetingNew = parseInt(Setting.friendGreetingNew);
   const characterTryGetDetail = parseInt(Setting.characterTryGetDetail);
+  const warnTimeCosts = parseInt(Setting.warnTimeCosts);
   const requestInterval = parseInt(Setting.requestInterval);
+  const deleteGroupMsgTime = parseInt(Setting.deleteGroupMsgTime);
   const cacheAbyEffectTime = parseInt(Setting.cacheAbyEffectTime);
   const cacheInfoEffectTime = parseInt(Setting.cacheInfoEffectTime);
   const dbAbyEffectTime = parseInt(Setting.dbAbyEffectTime);
   const dbInfoEffectTime = parseInt(Setting.dbInfoEffectTime);
-  const cookies = Cookies
-    ? Array.isArray(Cookies.cookies)
-      ? Cookies.cookies
-      : []
-    : [];
+  const viewDebug = parseInt(Setting.viewDebug);
+  const cookies = Cookies ? (Array.isArray(Cookies.cookies) ? Cookies.cookies : []) : [];
   const greetingOnline = Greeting.online;
   const greetingDie = Greeting.die;
   const greetingHello = Greeting.hello;
@@ -639,11 +619,14 @@ function readSettingCookiesGreetingMenu() {
     { groupGreetingNew },
     { friendGreetingNew },
     { characterTryGetDetail },
+    { warnTimeCosts },
     { requestInterval },
+    { deleteGroupMsgTime },
     { cacheAbyEffectTime },
     { cacheInfoEffectTime },
     { dbAbyEffectTime },
     { dbInfoEffectTime },
+    { viewDebug },
     { cookies },
     { greetingOnline },
     { greetingDie },
@@ -674,34 +657,36 @@ function readSettingCookiesGreetingMenu() {
 
   // menu 中每个值均为数组
   Object.keys(config.menu).forEach(
-    (k) =>
-      (config.menu[k] = Array.isArray(config.menu[k])
-        ? config.menu[k]
-        : config.menu[k]
-        ? [config.menu[k]]
-        : [])
+    (k) => (config.menu[k] = Array.isArray(config.menu[k]) ? config.menu[k] : config.menu[k] ? [config.menu[k]] : [])
   );
 }
 
 // global.alias.character       ->  alias (lowercase): character (string, lowercase)
 // global.alias.weapon          ->  alias (lowercase): weapon (string, lowercase)
 // global.alias.all             ->  alias (lowercase): name (string, lowercase)
-// global.alias.characterNames  ->  character names (array of string, lowercase)
-// global.alias.weaponNames     ->  weapon names (array of string, lowercase)
-// global.alias.allNames        ->  names (array of string, lowercase)
+// global.alias.characterNames  ->  { name: simhash } (name lowercase)
+// global.alias.weaponNames     ->  { name: simhash } (name lowercase)
+// global.alias.allNames        ->  { name: simhash } (name lowercase)
 function readAlias() {
   const getSection = (s) =>
     lodash.reduce(
       Alias[s] || {},
       (p, v, k) => {
-        (v || []).forEach(
-          (c) => (p["string" === typeof c ? c.toLowerCase() : c] = k)
-        );
+        (v || (v = [])).push(k);
+        v.forEach((c) => (p["string" === typeof c ? c.toLowerCase() : c] = k));
         return p;
       },
       {}
     );
-  const getNames = (o) => lodash.chain(o).toPairs().flatten().uniq().value();
+  const getNames = (o) =>
+    lodash
+      .chain(o)
+      .toPairs()
+      .flatten()
+      .uniq()
+      .map((c) => [c, simhash(c)])
+      .fromPairs()
+      .value();
 
   alias.character = getSection("character");
   alias.weapon = getSection("weapon");
@@ -739,11 +724,7 @@ function readEggs() {
 // artifacts.domains.aliasOf  -> id:                alias (array of string, lowercase)
 // artifacts.domains.product  -> id:                product (array of number)
 function readArtifacts() {
-  const reduce = (
-    prop,
-    key = [undefined, undefined],
-    lowercase = [false, false]
-  ) =>
+  const reduce = (prop, key = [undefined, undefined], lowercase = [false, false]) =>
     key.includes(undefined) ||
     lodash.reduce(
       Artifacts[prop] || [],
@@ -755,12 +736,7 @@ function readArtifacts() {
           p1 = "string" === typeof p1 ? p1.toLowerCase() : p1;
         }
         if (true === lowercase[1]) {
-          p2 =
-            "string" === typeof p2
-              ? p2.toLowerCase()
-              : Array.isArray(p2)
-              ? p2.map((c) => c.toLowerCase())
-              : p2;
+          p2 = "string" === typeof p2 ? p2.toLowerCase() : Array.isArray(p2) ? p2.map((c) => c.toLowerCase()) : p2;
         }
 
         p[p1] = p2;
@@ -768,11 +744,7 @@ function readArtifacts() {
       },
       {}
     );
-  const deepReduce = (
-    prop,
-    key = [undefined, undefined],
-    lowercase = [false, false]
-  ) =>
+  const deepReduce = (prop, key = [undefined, undefined], lowercase = [false, false]) =>
     key.includes(undefined) ||
     lodash.reduce(
       Artifacts[prop] || [],
@@ -786,12 +758,7 @@ function readArtifacts() {
               p1 = "string" === typeof p1 ? p1.toLowerCase() : p1;
             }
             if (true === lowercase[1]) {
-              p2 =
-                "string" === typeof p2
-                  ? p2.toLowerCase()
-                  : Array.isArray(p2)
-                  ? p2.map((c) => c.toLowerCase())
-                  : p2;
+              p2 = "string" === typeof p2 ? p2.toLowerCase() : Array.isArray(p2) ? p2.map((c) => c.toLowerCase()) : p2;
             }
 
             p[p1] = p2;
@@ -808,32 +775,16 @@ function readArtifacts() {
 
   artifacts.artifacts = {};
   artifacts.artifacts.id = reduce("artifacts", ["suit", "id"], [true, false]);
-  artifacts.artifacts.rarity = reduce(
-    "artifacts",
-    ["id", "rarity"],
-    [false, false]
-  );
+  artifacts.artifacts.rarity = reduce("artifacts", ["id", "rarity"], [false, false]);
   artifacts.artifacts.suit = reduce("artifacts", ["id", "suit"], [false, true]);
-  artifacts.artifacts.names = reduce(
-    "artifacts",
-    ["id", "names"],
-    [false, true]
-  );
+  artifacts.artifacts.names = reduce("artifacts", ["id", "names"], [false, true]);
 
   artifacts.domains = {};
   artifacts.domains.id = reduce("domains", ["name", "id"], [true, false]);
   artifacts.domains.name = reduce("domains", ["id", "name"], [false, true]);
-  artifacts.domains.alias = deepReduce(
-    "domains",
-    ["alias", "name"],
-    [true, true]
-  );
+  artifacts.domains.alias = deepReduce("domains", ["alias", "name"], [true, true]);
   artifacts.domains.aliasOf = reduce("domains", ["id", "alias"], [false, true]);
-  artifacts.domains.product = reduce(
-    "domains",
-    ["id", "product"],
-    [false, false]
-  );
+  artifacts.domains.product = reduce("domains", ["id", "product"], [false, false]);
 }
 
 // global.command
@@ -843,36 +794,24 @@ function readCommand() {
   getCommand(Master, "master");
 }
 
-// 目前就这两个的值是数组，其他的直接连接即可
+// global.all.function
+// global.all.functions.options
+// global.all.functions.entrance
 // global.all.function
 // global.all.functions.entrance
 function getAll() {
   const merge = (o, p, o1, o2) => {
     o[p] = {};
     // 这里可能有重复的 key 需要手动处理一下
-    for (const k of [
-      ...new Set([...Object.keys(o1 || {}), ...Object.keys(o2 || {})]),
-    ]) {
-      o[p][k] = [
-        ...new Set([...((o1 || {})[k] || []), ...((o2 || {})[k] || [])]),
-      ];
+    for (const k of [...new Set([...Object.keys(o1 || {}), ...Object.keys(o2 || {})])]) {
+      o[p][k] = [...new Set([...((o1 || {})[k] || []), ...((o2 || {})[k] || [])])];
     }
   };
 
   all.functions = {};
-  all.functions.options = lodash.assign(
-    {},
-    command.functions.options,
-    master.functions.options
-  );
-
+  all.functions.options = lodash.assign({}, command.functions.options, master.functions.options);
   merge(all, "function", command.function, master.function);
-  merge(
-    all.functions,
-    "entrance",
-    command.functions.entrance,
-    master.functions.entrance
-  );
+  merge(all.functions, "entrance", command.functions.entrance, master.functions.entrance);
 }
 
 // global.command.usage
@@ -887,14 +826,10 @@ function writeViewsConfig() {
   const dir = path.join(rootdir, "data", "config");
   const data = { rootdir };
 
-  fs.writeFileSync(
-    path.resolve(mkdir(dir), "views.json"),
-    JSON.stringify(data),
-    "utf8"
-  );
+  fs.writeFileSync(path.resolve(mkdir(dir), "views.json"), JSON.stringify(data), "utf8");
 }
 
-async function readConfig() {
+function readConfig() {
   readSettingCookiesGreetingMenu();
   readAlias();
   readEggs();
@@ -931,4 +866,4 @@ function hasEntrance(message, plugin, ...entrance) {
   return false;
 }
 
-export { readConfig, hasEntrance };
+export { hasEntrance, readConfig };

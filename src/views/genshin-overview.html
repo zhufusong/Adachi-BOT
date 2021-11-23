@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>genshin-overview</title>
-    <script src="../../data/js/vue.min.js"></script>
+    <script src="../../data/js/vue2.js"></script>
     <link rel="stylesheet" href="./component/overview/overview.css" />
   </head>
 
@@ -11,13 +11,10 @@
     <div id="app">
       <div class="info-base">
         <img class="background" :src="infoBackground" alt="ERROR" />
-        <img
-          :class="'角色' === type ? 'character' : 'weapon'"
-          :src="mainImage"
-          alt="ERROR"
-        />
+        <img :class="'角色' === type ? 'character' : 'weapon'" :src="mainImage" alt="ERROR" />
         <div class="content">
-          <p class="title-and-name">「{{ title }}·{{ name }}」</p>
+          <p class="title-and-name" v-if="name == '旅行者'">「旅行者」</p>
+          <p class="title-and-name" v-else>「{{ title }}·{{ name }}」</p>
         </div>
         <div class="introduction">
           <p class="introduce">{{ introduce }}</p>
@@ -44,23 +41,13 @@
                 <td class="image-weapon-ascension">
                   <div class="item-list">
                     <div class="list-weapon">
-                      <img
-                        class="item"
-                        v-for="el in ascension[0]"
-                        :src="icon(el)"
-                        alt="ERROR"
-                      />
+                      <img class="item" v-for="el in ascension[0]" :src="icon(el)" alt="ERROR" />
                     </div>
                   </div>
                   <div class="item-list">
                     <p class="title"></p>
                     <div class="list-weapon">
-                      <img
-                        class="item"
-                        v-for="el in ascension[1]"
-                        :src="icon(el)"
-                        alt="ERROR"
-                      />
+                      <img class="item" v-for="el in ascension[1]" :src="icon(el)" alt="ERROR" />
                     </div>
                   </div>
                 </td>
@@ -109,12 +96,7 @@
               <td>
                 <div class="item-list">
                   <div class="list">
-                    <img
-                      class="item"
-                      v-for="el in levelUp"
-                      :src="icon(el)"
-                      alt="ERROR"
-                    />
+                    <img class="item" v-for="el in levelUp" :src="icon(el)" alt="ERROR" />
                   </div>
                 </div>
               </td>
@@ -127,12 +109,7 @@
               <td>
                 <div class="item-list">
                   <div class="list">
-                    <img
-                      class="item"
-                      v-for="el in talent"
-                      :src="icon(el)"
-                      alt="ERROR"
-                    />
+                    <img class="item" v-for="el in talent" :src="icon(el)" alt="ERROR" />
                   </div>
                 </div>
               </td>
@@ -145,12 +122,7 @@
               <td>
                 <div class="item-list">
                   <div class="list">
-                    <img
-                      class="item"
-                      v-for="el in ascension"
-                      :src="icon(el)"
-                      alt="ERROR"
-                    />
+                    <img class="item" v-for="el in ascension" :src="icon(el)" alt="ERROR" />
                   </div>
                 </div>
               </td>
@@ -198,103 +170,59 @@
           numCN: [],
         },
         methods: {
-          readJSON(file, callback) {
-            fetch(file).then((res) => {
-              return res.json().then((data) => {
-                callback(data);
-              });
-            });
+          icon(name) {
+            return "http://localhost:9934/resources/Version2/info/image/" + name + ".png";
           },
         },
         mounted() {
-          this.readJSON("../../data/record/genshin-overview.json", (res) => {
-            this.rarity = res.rarity;
-            this.name = res.name;
-            this.id = res.id;
-            this.title = res.title;
-            this.type = res.type;
-            this.introduce = res.introduce;
-            this.infoBackground =
-              "http://localhost:9934/resources/Version2/info/other/BaseBackground" +
-              res.rarity +
-              ".png";
-            this.mainImage =
-              "http://localhost:9934/resources/Version2/" +
-              (res.type === "角色"
-                ? "character/" + res.id + ".png"
-                : "weapon/" + res.name + ".png");
+          const params = JSON.parse(
+            decodeURIComponent(escape(window.atob(new URL(window.location.href).searchParams.get("data")) || "{}"))
+          );
 
-            this.skillName = res.skillName;
-            this.skillContent = res.skillContent;
-            this.access = res.access;
+          this.rarity = params.rarity;
+          this.name = params.name;
+          this.id = params.id;
+          this.title = params.title;
+          this.type = params.type;
+          this.introduce = params.introduce;
+          this.infoBackground =
+            "http://localhost:9934/resources/Version2/info/other/BaseBackground" + params.rarity + ".png";
+          this.mainImage =
+            "http://localhost:9934/resources/Version2/" +
+            (params.type === "角色" ? "character/" + params.id + ".png" : "weapon/" + params.name + ".png");
+          this.skillName = params.skillName;
+          this.skillContent = params.skillContent;
+          this.access = params.access;
+          this.mainStat = params.mainStat;
+          this.baseATK = params.baseATK;
+          this.mainValue = params.mainValue;
+          this.birthday = params.birthday;
+          this.element = params.element;
+          this.constellationName = params.constellationName;
+          this.cv = params.cv;
+          this.ascension = params.ascensionMaterials;
+          this.levelUp = params.levelUpMaterials;
+          this.talent = params.talentMaterials;
+          this.time = params.time;
+          this.constellations = params.constellations;
+          this.starIcon = "http://localhost:9934/resources/Version2/info/other/BaseStar" + params.rarity + ".png";
+          this.numCN = ["一", "二", "四", "六"];
 
-            this.mainStat = res.mainStat;
-            this.baseATK = res.baseATK;
-            this.mainValue = res.mainValue;
-            this.birthday = res.birthday;
-            this.element = res.element;
-            this.constellationName = res.constellationName;
-            this.cv = res.cv;
-            this.ascension = res.ascensionMaterials;
-            this.levelUp = res.levelUpMaterials;
-            this.talent = res.talentMaterials;
-            this.time = res.time;
-            this.constellations = res.constellations;
-            this.starIcon =
-              "http://localhost:9934/resources/Version2/info/other/BaseStar" +
-              res.rarity +
-              ".png";
-            this.numCN = ["一", "二", "四", "六"];
-
-            if (5 === this.rarity) {
-              document.documentElement.style.setProperty(
-                "--styleColor",
-                "rgb(205, 167, 101)"
-              );
-              document.documentElement.style.setProperty(
-                "--backgroundColor",
-                "rgb(211, 200, 187)"
-              );
-              document.documentElement.style.setProperty(
-                "--dottedColor",
-                "rgb(198, 156, 80)"
-              );
-            } else if (4 === this.rarity) {
-              document.documentElement.style.setProperty(
-                "--styleColor",
-                "rgb(142, 115, 170)"
-              );
-              document.documentElement.style.setProperty(
-                "--backgroundColor",
-                "rgb(211, 211, 212)"
-              );
-              document.documentElement.style.setProperty(
-                "--dottedColor",
-                "rgb(72, 83, 101)"
-              );
-            } else {
-              document.documentElement.style.setProperty(
-                "--styleColor",
-                "rgb(98, 191, 218)"
-              );
-              document.documentElement.style.setProperty(
-                "--backgroundColor",
-                "rgb(210, 212, 225)"
-              );
-              document.documentElement.style.setProperty(
-                "--dottedColor",
-                "rgb(3, 149, 166"
-              );
-            }
-          });
+          if (5 === this.rarity) {
+            document.documentElement.style.setProperty("--styleColor", "rgb(205, 167, 101)");
+            document.documentElement.style.setProperty("--backgroundColor", "rgb(211, 200, 187)");
+            document.documentElement.style.setProperty("--dottedColor", "rgb(198, 156, 80)");
+          } else if (4 === this.rarity) {
+            document.documentElement.style.setProperty("--styleColor", "rgb(142, 115, 170)");
+            document.documentElement.style.setProperty("--backgroundColor", "rgb(211, 211, 212)");
+            document.documentElement.style.setProperty("--dottedColor", "rgb(72, 83, 101)");
+          } else {
+            document.documentElement.style.setProperty("--styleColor", "rgb(98, 191, 218)");
+            document.documentElement.style.setProperty("--backgroundColor", "rgb(210, 212, 225)");
+            document.documentElement.style.setProperty("--dottedColor", "rgb(3, 149, 166");
+          }
         },
       });
-
-      function icon(name) {
-        return (
-          "http://localhost:9934/resources/Version2/info/image/" + name + ".png"
-        );
-      }
     </script>
   </body>
 </html>

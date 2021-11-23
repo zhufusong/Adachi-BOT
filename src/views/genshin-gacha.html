@@ -3,22 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <title>genshin-gacha</title>
-    <script src="../../data/js/vue.min.js"></script>
+    <script src="../../data/js/vue2.js"></script>
     <link rel="stylesheet" href="./component/gacha/gacha.css" />
   </head>
   <body>
     <div id="app">
+      <div class="patch-close-button"></div>
+      <div class="patch-share-button"></div>
       <background :user="user" :type="type"></background>
       <gacha-box :data="gachaList"></gacha-box>
     </div>
 
     <template id="background">
       <div class="background">
+        <p class="bg-info">@{{user}} 在 {{time}} 抽取了 {{wish}} 卡池</p>
         <img
           src="http://localhost:9934/resources/gacha/items/background.png"
           alt="ERROR"
+          style="position: absolute; z-index: -1"
         />
-        <p class="bg-info">@{{user}} 在 {{time}} 抽取了 {{wish}} 卡池</p>
       </div>
     </template>
 
@@ -35,9 +38,7 @@
           <img class="character-image" :src="characterImage" alt="ERROR" />
         </div>
         <img class="type-image" :src="typeImage" alt="ERROR" />
-        <div class="times" v-if="data.times !== undefined">
-          「{{data.times}} 抽」
-        </div>
+        <div class="times" v-if="data.times !== undefined">「{{data.times}} 抽」</div>
       </div>
     </template>
 
@@ -55,9 +56,9 @@
         props: ["user", "type"],
         computed: {
           time() {
-            let date = new Date();
-            let month = date.getMonth() + 1;
-            let day = date.getDate();
+            const date = new Date();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
             let hour = date.getHours();
             let minute = date.getMinutes();
             let second = date.getSeconds();
@@ -94,39 +95,21 @@
         },
         computed: {
           starBackground() {
-            return (
-              "http://localhost:9934/resources/gacha/items/" +
-              this.bgType[this.data.star - 3] +
-              ".png"
-            );
+            return "http://localhost:9934/resources/gacha/items/" + this.bgType[this.data.star - 3] + ".png";
           },
           starImage() {
-            return (
-              "http://localhost:9934/resources/gacha/items/" +
-              this.starType[this.data.star - 3] +
-              ".png"
-            );
+            return "http://localhost:9934/resources/gacha/items/" + this.starType[this.data.star - 3] + ".png";
           },
           characterImage() {
-            return (
-              "http://localhost:9934/resources/Version2/wish/character/" +
-              this.data.item_name +
-              ".png"
-            );
+            return "http://localhost:9934/resources/Version2/wish/character/" + this.data.item_name + ".png";
           },
           weaponImage() {
-            return (
-              "http://localhost:9934/resources/Version2/wish/weapon/" +
-              this.data.item_name +
-              ".png"
-            );
+            return "http://localhost:9934/resources/Version2/wish/weapon/" + this.data.item_name + ".png";
           },
           typeImage() {
             const type = this.data.item_type === "武器" ? "type" : "element";
             const name = this.data.type;
-            return (
-              `http://localhost:9934/resources/gacha/${type}/` + name + ".png"
-            );
+            return `http://localhost:9934/resources/gacha/${type}/` + name + ".png";
           },
         },
       };
@@ -158,32 +141,28 @@
           gachaBox,
         },
         methods: {
-          readJSON(file, callback) {
-            fetch(file).then((res) => {
-              return res.json().then((data) => {
-                callback(data);
-              });
-            });
-          },
           sortValue(type) {
             return "角色" === type ? 1 : 0;
           },
         },
         mounted() {
-          this.readJSON("../../data/record/genshin-gacha.json", (res) => {
-            this.gachaList = res.data;
-            this.type = res.type;
-            this.user = res.user;
+          const params = JSON.parse(
+            decodeURIComponent(escape(window.atob(new URL(window.location.href).searchParams.get("data")) || "{}"))
+          );
 
-            this.gachaList.sort((x, y) => {
-              let xv = this.sortValue(x.item_type);
-              let yv = this.sortValue(y.item_type);
-              if (x.star === y.star) {
-                return yv - xv;
-              } else {
-                return y.star - x.star;
-              }
-            });
+          this.gachaList = params.data;
+          this.type = params.type;
+          this.user = params.user;
+
+          this.gachaList.sort((x, y) => {
+            const xv = this.sortValue(x.item_type);
+            const yv = this.sortValue(y.item_type);
+
+            if (x.star === y.star) {
+              return yv - xv;
+            } else {
+              return y.star - x.star;
+            }
           });
         },
       });

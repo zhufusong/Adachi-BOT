@@ -3,17 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <title>genshin-artifact</title>
-    <script src="../../data/js/vue.min.js"></script>
+    <script src="../../data/js/vue2.js"></script>
     <link rel="stylesheet" href="./component/artifact/artifact.css" />
   </head>
   <body>
     <div id="app">
       <div>
-        <img
-          class="background"
-          src="http://localhost:9934/resources/module/artifact.png"
-          alt="ERROR"
-        />
+        <img class="background" src="http://localhost:9934/resources/module/artifact.png" alt="ERROR" />
         <div class="content">
           <p class="name">{{base.name}}</p>
           <p class="slot">{{Slot}}</p>
@@ -21,16 +17,14 @@
             <p class="property">{{statName}}</p>
             <p class="data">{{statData}}</p>
           </div>
-          <img
-            class="rarity"
-            src="http://localhost:9934/resources/item/rarity.png"
-            alt="ERROR"
-          />
+          <img class="rarity" src="http://localhost:9934/resources/item/rarity.png" alt="ERROR" />
           <img class="image" :src="artifactImage" alt="ERROR" />
           <p class="level">+{{base.level}}</p>
-          <ul class="list" v-for="v in data">
-            <li class="element">{{v.name}}+{{v.data}}</li>
-          </ul>
+          <div class="sub-properties">
+            <ul class="list" v-for="v in data">
+              <li class="element">{{v.name}}+{{v.data}}</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -102,21 +96,14 @@
             );
           },
         },
-        methods: {
-          readJSON(file, callback) {
-            fetch(file).then((res) => {
-              return res.json().then((data) => {
-                callback(data);
-              });
-            });
-          },
-        },
         mounted() {
-          this.readJSON("../../data/record/genshin-artifact.json", (res) => {
-            this.base = res.base;
-            this.data = res.data;
-            this.mainStat = res.mainStat;
-          });
+          const params = JSON.parse(
+            decodeURIComponent(escape(window.atob(new URL(window.location.href).searchParams.get("data")) || "{}"))
+          );
+
+          this.base = params.base;
+          this.data = params.data;
+          this.mainStat = params.mainStat;
         },
       });
     </script>

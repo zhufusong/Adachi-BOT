@@ -3,7 +3,7 @@
 
 import lodash from "lodash";
 import db from "./database.js";
-import { getGachaList, getGachaDetail } from "./api.js";
+import { getGachaDetail, getGachaList } from "./api.js";
 
 async function parseData(gachaID) {
   const data = await getGachaDetail(gachaID);
@@ -69,7 +69,7 @@ async function gachaUpdate() {
   const character = await parseData(getGachaCode(301));
   const weapon = await parseData(getGachaCode(302));
 
-  await db.set("gacha", "data", [indefinite, character, weapon]);
+  db.set("gacha", "data", [indefinite, character, weapon]);
   // 只打印一次日志
   bots[0] && bots[0].logger.debug("卡池：内容已刷新。");
 }
