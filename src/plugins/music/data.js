@@ -1,6 +1,3 @@
-/* global all, command */
-/* eslint no-undef: "error" */
-
 import lodash from "lodash";
 import fetch from "node-fetch";
 import querystring from "querystring";
@@ -29,12 +26,18 @@ async function musicQQ(keyword) {
     "Content-Type": "application/x-www-form-urlencoded",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
   };
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body,
-  });
-  let jbody = undefined;
+  let response;
+  let jbody;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers,
+      body,
+    });
+  } catch (e) {
+    return ERRCODE.ERR_API;
+  }
 
   if (200 === response.status) {
     jbody = await response.json();
@@ -75,12 +78,18 @@ async function music163(keyword) {
     Referer: "https://music.163.com",
     Cookie: "appver=2.0.2",
   };
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body,
-  });
-  let jbody = undefined;
+  let response;
+  let jbody;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers,
+      body,
+    });
+  } catch (e) {
+    return ERRCODE.ERR_API;
+  }
 
   if (200 === response.status) {
     jbody = await response.json();
@@ -106,10 +115,10 @@ async function music163(keyword) {
 }
 
 async function musicID(text, source) {
-  const args = filterWordsByRegex(text, ...command.functions.entrance.music);
+  const args = filterWordsByRegex(text, ...global.command.functions.entrance.music);
   const worker = {
-    [all.functions.options.music_source.qq || "qq"]: musicQQ,
-    [all.functions.options.music_source[163] || "163"]: music163,
+    [global.all.functions.options.music_source.qq || "qq"]: musicQQ,
+    [global.all.functions.options.music_source[163] || "163"]: music163,
   };
 
   if (!(source in worker)) {
@@ -120,13 +129,13 @@ async function musicID(text, source) {
 }
 
 function musicSrc(text, id) {
-  let [source] = getWordByRegex(filterWordsByRegex(text, ...command.functions.entrance.music), /\S+/);
+  let [source] = getWordByRegex(filterWordsByRegex(text, ...global.command.functions.entrance.music_source), /\S+/);
   const data = db.get("music", "source", { ID: id });
 
   if ("string" === typeof source) {
     source = source.toLowerCase();
 
-    if (!Object.values(all.functions.options.music_source).includes(source)) {
+    if (!Object.values(global.all.functions.options.music_source).includes(source)) {
       return false;
     }
 

@@ -1,6 +1,3 @@
-/* global rootdir */
-/* eslint no-undef: "error" */
-
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -25,7 +22,7 @@ const HEADERS = {
 };
 
 function getInfo(name) {
-  const infoDir = path.resolve(rootdir, "resources", "Version2", "info", "docs");
+  const infoDir = path.resolve(global.rootdir, "resources", "Version2", "info", "docs");
 
   return new Promise((resolve, reject) => {
     try {
@@ -55,7 +52,7 @@ function getBase(uid, cookie) {
   }).then((res) => res.json());
 }
 
-function getDetail(role_id, server, cookie) {
+function getIndex(role_id, server, cookie) {
   const query = { role_id, server };
 
   return fetch(`${__API.FETCH_ROLE_INDEX}?${new URLSearchParams(query)}`, {
@@ -93,4 +90,4 @@ function getGachaDetail(gachaID) {
   }).then((res) => res.json());
 }
 
-export { getAbyDetail, getBase, getCharacters, getDetail, getGachaDetail, getGachaList, getInfo };
+export { getAbyDetail, getBase, getCharacters, getGachaDetail, getGachaList, getIndex, getInfo };

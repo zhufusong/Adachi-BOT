@@ -1,6 +1,3 @@
-/* global bots, rootdir */
-/* eslint no-undef: "error" */
-
 import schedule from "node-schedule";
 import express from "express";
 import db from "./database.js";
@@ -10,7 +7,7 @@ function initDB() {
   db.init("aby");
   db.init("artifact");
   db.init("authority");
-  db.init("character");
+  db.init("character", { record: [] });
   db.init("cookies", { cookie: [], uid: [] });
   db.init("cookies_invalid", { cookie: [] });
   db.init("gacha", { user: [], data: [] });
@@ -22,9 +19,7 @@ function initDB() {
 
 function cleanDB(name) {
   let nums = db.clean(name);
-
-  // 只打印一次日志
-  bots[0] && bots[0].logger.debug(`清理：删除数据库 ${name} 中 ${nums} 条无用记录。`);
+  global.bots.logger.debug(`清理：删除数据库 ${name} 中 ${nums} 条无用记录。`);
   return nums;
 }
 
@@ -39,7 +34,7 @@ function cleanDBJob() {
 
 function serve(port = 9934) {
   const server = express();
-  server.use(express.static(rootdir));
+  server.use(express.static(global.rootdir));
   server.listen(port, "localhost");
 }
 

@@ -31,7 +31,7 @@ aby:
   weights: 9699
   regex:
     - ^(上期)?深渊\s*$
-    - ^(上期)?深渊\s*\d+.*$
+    - ^(上期)?深渊\s*\d+\s*$
     - ^(上期)?深渊\s*\[CQ:at,qq=.*$
   functions:
     aby:
@@ -139,6 +139,7 @@ gacha:
   enable: true
   weights: 9399
   regex:
+    - ^卡池\s*$
     - ^(十连|定轨)\s*$
     - ^(卡池|定轨)\s*\S+\s*$
     - ^(查看|取消)定轨\s*$
@@ -157,13 +158,14 @@ gacha:
       show: true
       weights: 9899
       name: 卡池
-      usage:
-      description: 切换【十连】的卡池
+      usage: [卡池名]
+      description: 有卡池名则切换【十连】的卡池，否则列出所有卡池名
       entrance:
         - ^卡池
       options:
         200: 常驻
         301: 角色
+        400: 角色2
         302: 武器
         999: 彩蛋
     select:

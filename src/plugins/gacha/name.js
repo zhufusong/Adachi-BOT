@@ -1,11 +1,16 @@
-/* global alias, command */
-/* eslint no-undef: "error" */
-
 import { filterWordsByRegex, getWordByRegex } from "../../utils/tools.js";
 
-function getName(msg) {
-  let name = getWordByRegex(filterWordsByRegex(msg.text, ...command.functions.entrance.select), /\S+/)[0];
-  return alias.weapon["string" === typeof name ? name.toLowerCase() : name] || name;
+function getText(msg, names) {
+  return getWordByRegex(filterWordsByRegex(msg.text, ...names), /\S+/)[0];
 }
 
-export { getName };
+function getName(msg) {
+  const name = getText(msg, global.command.functions.entrance.select);
+  return global.names.weaponAlias["string" === typeof name ? name.toLowerCase() : name] || name;
+}
+
+function getPool(msg) {
+  return getText(msg, global.command.functions.entrance.pool);
+}
+
+export { getName, getPool };
