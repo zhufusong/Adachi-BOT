@@ -9,8 +9,8 @@ function detailError(message, cache = false, master = false, message_master = ""
   return { detail: true, message, cache, master, message_master };
 }
 
-function getDetailErrorForPossibleInvalidCookie(message, cookie) {
-  const warnInvalidCookie = tryToWarnInvalidCookie(message, cookie);
+function getDetailErrorForPossibleInvalidCookie(retcode, message, cookie) {
+  const warnInvalidCookie = tryToWarnInvalidCookie(retcode, cookie);
   const masterArgs = warnInvalidCookie ? [true, warnInvalidCookie] : [false, ""];
   throw detailError(`米游社接口报错: ${message}`, false, ...masterArgs);
 }
@@ -117,7 +117,7 @@ async function abyDetail(uid, server, userID, schedule_type, bot) {
   const { retcode, message, data } = response;
 
   if (retcode !== 0) {
-    return getDetailErrorForPossibleInvalidCookie(message, cookie);
+    return getDetailErrorForPossibleInvalidCookie(retcode, message, cookie);
   }
 
   if (!db.includes("aby", "user", "uid", uid)) {
@@ -146,7 +146,7 @@ async function baseDetail(mhyID, userID, bot) {
   const errInfo = "未查询到角色数据，请检查米哈游通行证是否有误或是否设置角色信息公开";
 
   if (retcode !== 0) {
-    return getDetailErrorForPossibleInvalidCookie(message, cookie);
+    return getDetailErrorForPossibleInvalidCookie(retcode, message, cookie);
   } else if (!data.list || 0 === data.list.length) {
     throw detailError(errInfo);
   }
@@ -205,7 +205,7 @@ async function indexDetail(uid, server, userID, bot) {
 
   if (retcode !== 0) {
     db.update("info", "user", { uid }, { message, retcode: parseInt(retcode) });
-    return getDetailErrorForPossibleInvalidCookie(message, cookie);
+    return getDetailErrorForPossibleInvalidCookie(retcode, message, cookie);
   }
 
   db.update(
@@ -227,8 +227,11 @@ async function indexDetail(uid, server, userID, bot) {
   return characterID;
 }
 
-// 如果 guess 为 true 则猜测所有除了 character_ids 之外可能的角色，
-// 适应米游社 API 改版 https://github.com/Arondight/Adachi-BOT/issues/436
+// 适应米游社 API 改版，如果 guess 为 true 则猜测所有除了 character_ids 之外可能的角色。
+// https://github.com/Arondight/Adachi-BOT/issues/436
+// -----------------------------------------------------------------------------
+// API 再次改版， guess 应当总为 false，相关代码仅做留存。
+// https://github.com/Arondight/Adachi-BOT/issues/486
 async function characterDetail(uid, server, character_ids, guess = false, bot) {
   userInitialize(uid, "", -1);
 
@@ -245,7 +248,7 @@ async function characterDetail(uid, server, character_ids, guess = false, bot) {
   const { retcode, message, data } = response;
 
   if (retcode !== 0) {
-    return getDetailErrorForPossibleInvalidCookie(message, cookie);
+    return getDetailErrorForPossibleInvalidCookie(retcode, message, cookie);
   }
 
   if (true === guess) {

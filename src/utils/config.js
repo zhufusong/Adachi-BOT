@@ -35,6 +35,7 @@
  *     weights: { hello_world: 9999, eat: 9999 },
  *     name: { hello_world: 'hello world', eat: 'eat' },
  *     usage: { hello_world: undefined, eat: undefined },
+ *     revert: { hello_world: false, eat: false },
  *     description: { hello_world: 'I will say hello to you', eat: 'What to eat' },
  *     entrance: { hello_world: [ '^hello' ], eat: [ '^eat' ] },
  *     options: { eat: { apple: '苹果', banana: '香蕉', egg: '蛋' } }
@@ -66,6 +67,7 @@
  *       weights: 9999
  *       name: hello world
  *       usage:
+ *       revert: false
  *       description: I will say hello to you
  *       entrance:
  *         - ^hello
@@ -81,6 +83,7 @@
  *       weights: 9999
  *       name: eat
  *       usage:
+ *       revert: false
  *       description: What to eat
  *       entrance:
  *         - ^eat
@@ -327,11 +330,25 @@
  *
  *
  * ==========================================================================
- * global.info.character
+ * global.info.material
  * --------------------------------------------------------------------------
- * 数组中元素的数据结构与原文件一致。
+ * { MonThu: [ '刻晴', '风鹰剑' ] }
+ * --------------------------------------------------------------------------
+ * global.info.character
+ * global.info.weapon
+ * --------------------------------------------------------------------------
+ * 数据结构见其后说明。
+ * ==========================================================================
+ *
+ *
+ * ==========================================================================
+ * global.info.character
+ * global.info.weapon
+ * --------------------------------------------------------------------------
+ * 数组中元素的数据结构与原文件一致，以字段 rarity 降序。
  * --------------------------------------------------------------------------
  * ../../resources/Version2/info/docs/<角色名>.json
+ * ../../resources/Version2/info/docs/<武器名>.json
  * --------------------------------------------------------------------------
  * 请直接查看文件内容。
  * ==========================================================================
@@ -381,6 +398,7 @@ const Setting = loadYML("setting");
 // global[key].functions.weights     -> function (lowercase):  weights (number)
 // global[key].functions.name        -> function (lowercase):  name (string)
 // global[key].functions.usage       -> function (lowercase):  usage (string)
+// global[key].functions.revert      -> function (lowercase):  revert (boolean)
 // global[key].functions.description -> function (lowercase):  description (string)
 // global[key].functions.entrance    -> function (lowercase):  entrance (array of string, lowercase)
 // global[key].functions.options     -> function (lowercase):  { function: { option: text } } (both lowercase)
@@ -476,6 +494,7 @@ function getCommand(obj, key) {
     add(obj, key, name, "weights", reduce, [true, false], 0);
     add(obj, key, name, "name", reduce, [true, false]);
     add(obj, key, name, "usage", reduce, [true, false]);
+    add(obj, key, name, "revert", reduce, [true, false], false);
     add(obj, key, name, "description", reduce, [true, false]);
     add(obj, key, name, "entrance", deepReduce, [true, true]);
     add(obj, key, name, "options", deepReduce, [true, true]);
@@ -552,13 +571,21 @@ function makeUsage(obj) {
         text +=
           listMark +
           " " +
-          obj.functions.name[func] +
-          " " +
-          (obj.functions.usage[func] ? obj.functions.usage[func] + " " : "") +
-          ("option" === type
-            ? (obj.functions.options[func] && "<" + Object.values(obj.functions.options[func]).join("、")) + "> "
-            : "") +
-          (obj.functions.description[func] ? commentMark + " " : "") +
+          (true === obj.functions.revert[func]
+            ? ("option" === type
+                ? null !== obj.functions.options[func] && Object.values(obj.functions.options[func]).join("、")
+                : "") +
+              obj.functions.name[func] +
+              " " +
+              (null !== obj.functions.usage[func] ? obj.functions.usage[func] + " " : "")
+            : obj.functions.name[func] +
+              " " +
+              (null !== obj.functions.usage[func] ? obj.functions.usage[func] + " " : "") +
+              ("option" === type
+                ? (null !== obj.functions.options[func] &&
+                    "<" + Object.values(obj.functions.options[func]).join("、")) + "> "
+                : "")) +
+          (null !== obj.functions.description[func] ? commentMark + " " : "") +
           (obj.functions.description[func] || "") +
           "\n";
       }
@@ -836,7 +863,9 @@ function readArtifacts() {
 //
 // global.info.character    -> array of { type, title, id , name, introduce, birthday, element, cv, constellationName,
 //                                        rarity, mainStat, mainValue, baseATK, ascensionMaterials, levelUpMaterials,
-//                                        talentMaterials, time, constellations }
+//                                        talentMaterials, time, constellations }, sorted by rarity
+// global.info.weapon       -> array of { title, name, introduce, access, rarity, mainStat, mainValue, baseATK,
+//                                        ascensionMaterials, time, skillName, skillContent }, sorted by rarity
 function readInfo() {
   const names = Object.values(global.names.allAlias);
   const dir = path.resolve(global.rootdir, "resources", "Version2", "info", "docs");
@@ -851,7 +880,49 @@ function readInfo() {
     });
 
   global.info = {};
-  global.info.character = info.filter((c) => "角色" === c.type);
+  global.info.character = lodash
+    .sortBy(
+      info.filter((c) => "角色" === c.type),
+      "rarity"
+    )
+    .reverse();
+  global.info.weapon = lodash
+    .sortBy(
+      info.filter((c) => "武器" === c.type),
+      "rarity"
+    )
+    .reverse();
+}
+
+// global.material.MonThu   -> array of name (string, lowercase)
+// global.material.TueFri   -> array of name (string, lowercase)
+// global.material.WedSat   -> array of name (string, lowercase)
+function readMaterial() {
+  const keyFromZhou = {
+    周一: ["MonThu"],
+    周二: ["TueFri"],
+    周三: ["WedSat"],
+    旅行者每日占位符: ["MonThu", "TueFri", "WedSat"],
+  };
+
+  global.material = {};
+
+  lodash
+    .chain(keyFromZhou)
+    .values()
+    .concat()
+    .flatten()
+    .uniq()
+    .each((k) => (global.material[k] = []))
+    .value();
+
+  global.info.character.concat(global.info.weapon).forEach((c) =>
+    Object.keys(keyFromZhou).forEach((zhou) => {
+      if (undefined !== c.time && "string" === typeof c.time && c.time.includes(zhou)) {
+        keyFromZhou[zhou].forEach((k) => global.material[k].push(c.name.toString().toLowerCase()));
+      }
+    })
+  );
 }
 
 // global.command
@@ -889,6 +960,7 @@ function getUsage() {
 }
 
 function readConfig() {
+  // 不要改变调用顺序
   readSetting();
   readCookies();
   readGreeting();
@@ -898,6 +970,7 @@ function readConfig() {
   readEggs();
   readArtifacts();
   readInfo();
+  readMaterial();
   readCommand();
   getAll();
   getUsage();
