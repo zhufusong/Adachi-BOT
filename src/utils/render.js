@@ -4,47 +4,52 @@ import puppeteer from "puppeteer";
 import { mkdir } from "./file.js";
 
 const settings = {
+  selector: {},
   hello: {
     "genshin-aby": true,
-    "genshin-artifact": false,
     "genshin-card": true,
-    "genshin-character": false,
-    "genshin-gacha": false,
-    "genshin-info": true,
-    "genshin-material": false,
-    "genshin-overview": false,
+    "genshin-card-8": true,
+    "genshin-package": true,
   },
   scale: {
-    "genshin-aby": 1.5,
     "genshin-artifact": 1.2,
-    "genshin-card": 1.5,
-    "genshin-character": 1.5,
-    "genshin-gacha": 1.5,
-    "genshin-info": 1.5,
+    "genshin-card-8": 2,
     "genshin-material": 2,
     "genshin-overview": 2,
   },
   delete: {
-    "genshin-aby": false,
     "genshin-artifact": true,
-    "genshin-card": false,
-    "genshin-character": false,
     "genshin-gacha": true,
-    "genshin-info": false,
-    "genshin-material": false,
-    "genshin-overview": false,
   },
 };
-const settingsDefault = { hello: false, scale: 1.5, delete: false };
+const settingsDefault = { selector: "body", hello: false, scale: 1.5, delete: false };
 let browser;
+let loading = false;
 
 async function launch() {
   if (undefined === browser) {
-    browser = await puppeteer.launch({
-      defaultViewport: null,
-      headless: 0 === global.config.viewDebug,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    if (false === loading) {
+      loading = true;
+      browser = await puppeteer.launch({
+        defaultViewport: null,
+        headless: 0 === global.config.viewDebug,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false,
+      });
+      loading = false;
+    } else {
+      while (true === loading) {
+        await new Promise((resolve) => setTimeout(() => resolve(), 100));
+      }
+    }
+  }
+}
+
+async function renderClose() {
+  if (undefined !== browser && true !== loading) {
+    await browser.close();
   }
 }
 
@@ -52,8 +57,8 @@ async function render(msg, data, name) {
   const recordDir = path.resolve(global.rootdir, "data", "record");
   let binary;
 
-  if ((settings.hello[name] || settingsDefault.hello) && global.config.warnTimeCosts) {
-    msg.bot && msg.bot.say(msg.sid, "正在绘图，请稍等……", msg.type, msg.uid, true);
+  if ((settings.hello[name] || settingsDefault.hello) && global.config.warnTimeCosts && undefined !== msg.bot) {
+    msg.bot.say(msg.sid, "正在绘图，请稍等……", msg.type, msg.uid, true);
   }
 
   try {
@@ -85,7 +90,7 @@ async function render(msg, data, name) {
     const param = { data: new Buffer.from(dataStr, "utf8").toString("base64") };
     await page.goto(`http://localhost:9934/src/views/${name}.html?${new URLSearchParams(param)}`);
 
-    const html = await page.$("body", { waitUntil: "networkidle0" });
+    const html = await page.$(settings.selector[name] || settingsDefault.selector, { waitUntil: "networkidle0" });
     binary = await html.screenshot({
       encoding: "binary",
       type: "jpeg",
@@ -112,9 +117,12 @@ async function render(msg, data, name) {
 
     if (undefined !== msg.bot) {
       msg.bot.say(msg.sid, imageCQ, msg.type, msg.uid, toDelete, "\n");
-      1 === global.config.saveImage && fs.writeFile(record, binary, () => {});
+
+      if (1 === global.config.saveImage) {
+        fs.writeFile(record, binary, () => {});
+      }
     }
   }
 }
 
-export { render };
+export { render, renderClose };
