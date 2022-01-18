@@ -107,9 +107,11 @@
  *   groupHello: 1,
  *   groupGreetingNew: 1,
  *   friendGreetingNew: 1,
+ *   noticeMysNews: 1,
  *   characterTryGetDetail: 1,
  *   requestInterval: 0,
  *   deleteGroupMsgTime: 0,
+ *   boardcastDelay : 0.2,
  *   cacheAbyEffectTime: 1,
  *   cacheInfoEffectTime: 1,
  *   dbAbyEffectTime: 1,
@@ -132,9 +134,11 @@
  * groupHello: 1
  * groupGreetingNew: 1
  * friendGreetingNew: 1
+ * noticeMysNews: 1
  * characterTryGetDetail: 1
  * requestInterval: 0
  * deleteGroupMsgTime: 0
+ * boardcastDelay: 0.2
  * prefixes:
  *   -
  * cacheAbyEffectTime: 1
@@ -368,15 +372,22 @@ import { ls } from "./file.js";
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+global.rootdir = path.resolve(__dirname, "..", "..");
+
 global.all = {};
 global.artifacts = {};
 global.command = {};
 global.config = {};
+global.cookies = [];
 global.eggs = {};
+global.greeting = {};
+global.info = {};
+global.innerAuthName = { reply: "响应消息", mysNews: "米游社新闻推送" };
 global.master = {};
+global.menu = {};
 global.names = {};
-global.rootdir = path.resolve(__dirname, "..", "..");
 global.package = JSON.parse(fs.readFileSync(path.resolve(global.rootdir, "package.json")));
+global.prophecy = {};
 
 const Artifacts = loadYML("artifacts");
 const Command = loadYML("command");
@@ -591,7 +602,7 @@ function makeUsage(obj) {
     }
   }
 
-  text += text ? "-------------------\n<> 表示必填，[] 表示可选" : "我什么都不会哦。";
+  text += text ? `${"-".repeat(20)}\n<> 表示必填，[] 表示可选` : "我什么都不会哦。";
 
   obj.usage = text;
 }
@@ -614,6 +625,8 @@ function readSetting() {
     groupGreetingNew: 0,
     // 不向新好友问好
     friendGreetingNew: 0,
+    // 不推送米游社新闻
+    noticeMysNews: 0,
     // 角色查询不尝试拉取数据
     characterTryGetDetail: 0,
     // 耗时操作前不发送提示
@@ -622,6 +635,8 @@ function readSetting() {
     requestInterval: 0,
     // 不尝试撤回发送的群消息
     deleteGroupMsgTime: 0,
+    // 广播中消息间时延 0.1 秒
+    boardcastDelay: 0.1,
     // 深渊记录缓存一小时
     cacheAbyEffectTime: 1,
     // 玩家数据缓存一小时
@@ -649,10 +664,12 @@ function readSetting() {
   const groupHello = parseInt(Setting.groupHello);
   const groupGreetingNew = parseInt(Setting.groupGreetingNew);
   const friendGreetingNew = parseInt(Setting.friendGreetingNew);
+  const noticeMysNews = parseInt(Setting.noticeMysNews);
   const characterTryGetDetail = parseInt(Setting.characterTryGetDetail);
   const warnTimeCosts = parseInt(Setting.warnTimeCosts);
   const requestInterval = parseInt(Setting.requestInterval);
   const deleteGroupMsgTime = parseInt(Setting.deleteGroupMsgTime);
+  const boardcastDelay = parseInt(parseFloat(Setting.boardcastDelay) * 1000);
   const cacheAbyEffectTime = parseInt(Setting.cacheAbyEffectTime);
   const cacheInfoEffectTime = parseInt(Setting.cacheInfoEffectTime);
   const dbAbyEffectTime = parseInt(Setting.dbAbyEffectTime);
@@ -661,16 +678,11 @@ function readSetting() {
   const saveImage = parseInt(Setting.saveImage);
 
   const getConfig = (...pairs) => {
-    pairs &&
-      pairs.forEach((p) => {
-        const prop = Object.keys(p)[0];
-        const val = p[prop];
-
-        if (undefined === defaultConfig[prop]) {
-          global.config[prop] = val;
-        }
-        global.config[prop] = val || defaultConfig[prop];
-      });
+    pairs.forEach((p) => {
+      const prop = Object.keys(p)[0];
+      const val = p[prop];
+      global.config[prop] = val || defaultConfig[prop];
+    });
   };
 
   getConfig(
@@ -685,10 +697,12 @@ function readSetting() {
     { groupHello },
     { groupGreetingNew },
     { friendGreetingNew },
+    { noticeMysNews },
     { characterTryGetDetail },
     { warnTimeCosts },
     { requestInterval },
     { deleteGroupMsgTime },
+    { boardcastDelay },
     { cacheAbyEffectTime },
     { cacheInfoEffectTime },
     { dbAbyEffectTime },
@@ -696,6 +710,16 @@ function readSetting() {
     { viewDebug },
     { saveImage }
   );
+
+  // 以下选项不为负数
+  global.config.repeatProb = Math.max(global.config.repeatProb, 0);
+  global.config.requestInterval = Math.max(global.config.requestInterval, 0);
+  global.config.deleteGroupMsgTime = Math.max(global.config.deleteGroupMsgTime, 0);
+  global.config.boardcastDelay = Math.max(global.config.boardcastDelay, 0);
+  global.config.cacheAbyEffectTime = Math.max(global.config.cacheAbyEffectTime, 0);
+  global.config.cacheInfoEffectTime = Math.max(global.config.cacheInfoEffectTime, 0);
+  global.config.dbAbyEffectTime = Math.max(global.config.dbAbyEffectTime, 0);
+  global.config.dbInfoEffectTime = Math.max(global.config.dbInfoEffectTime, 0);
 
   // 设置每个 QQ 账户的登录选项默认值
   for (const option of global.config.accounts) {
@@ -724,7 +748,16 @@ function readSetting() {
 }
 
 function readCookies() {
-  global.cookies = Cookies ? (Array.isArray(Cookies.cookies) ? Cookies.cookies : []) : [];
+  if (lodash.hasIn(Cookies, "cookies")) {
+    switch (true) {
+      case Array.isArray(Cookies.cookies):
+        global.cookies = Cookies.cookies;
+        break;
+      case "string" === typeof Cookies.cookies:
+        global.cookies = [Cookies.cookies];
+        break;
+    }
+  }
 }
 
 function readGreeting() {

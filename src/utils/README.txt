@@ -40,7 +40,7 @@
   baseDetail              获取账号基本数据
   characterDetail         获取账号角色数据
   indexDetail             获取账号数据
-  handleDetailError       处理上面几个 *Promise 可能抛出的异常
+  handleDetailError       处理上面几个 *Detail 可能抛出的异常
 
 ./ds.js
   getDS                   获得用于请求官方 API 的 DS 字段的值
@@ -52,7 +52,11 @@
   readlink                获取文件路径
 
 ./oicq.js
+  boardcast               发送一条广播
   fromCqcode              将 oicq 2.x 的 message 转换为 oicq 1.x 中的 raw_message
+  isGroupBan              是否被群禁言
+  say                     发送一条消息
+  sayMaster               给全体管理员发送一条消息
   toCqcode                将 oicq 1.x 的 raw_message 转换为 oicq 2.x 中的 message
 
 ./id.js
@@ -79,6 +83,7 @@
   guessPossibleNames      猜测字符串数组中哪些元素等价于某个名字
   hamming                 计算两个 simhash 的汉明距离
   isPossibleName          猜测字符串数组是否有元素等价于某个名字
+  matchBracket            获得匹配的闭括号
   randomString            返回随机字符串
   segment                 简单的词语拆分
   simhash                 计算 simhash

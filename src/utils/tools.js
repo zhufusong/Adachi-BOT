@@ -4,6 +4,56 @@ import levenshtein from "fastest-levenshtein";
 
 const similarityMaxValue = 0.5;
 
+// -1   not a start bracket
+// -2   not found end bracket
+// -3   invalid text
+// -4   invalid index
+// -5   invalid brackets
+// > 0  index of end bracket
+function matchBracket(text, index, brackets = ["[", "]"]) {
+  let stackSize = 0;
+
+  if ("string" !== typeof text || text.length <= 2) {
+    return -3;
+  }
+
+  if (0 > index || index > text.length - 1) {
+    return -4;
+  }
+
+  if (false === Array.isArray(brackets) || 2 !== brackets.length) {
+    return -5;
+  }
+
+  for (const bracket of brackets) {
+    if ("string" !== typeof bracket || 1 !== bracket.length) {
+      return -5;
+    }
+  }
+
+  const start = text[index];
+
+  if (start !== brackets[0]) {
+    return -1;
+  }
+
+  for (let i = index; i < text.length; ++i) {
+    if (brackets[0] === text[i]) {
+      ++stackSize;
+    }
+
+    if (brackets[1] === text[i]) {
+      --stackSize;
+    }
+
+    if (0 === stackSize) {
+      return i;
+    }
+  }
+
+  return -2;
+}
+
 function randomString(length) {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const charactersLength = characters.length;
@@ -173,6 +223,7 @@ export {
   guessPossibleNames,
   hamming,
   isPossibleName,
+  matchBracket,
   randomString,
   segment,
   simhash,
