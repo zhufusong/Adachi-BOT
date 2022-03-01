@@ -4,9 +4,20 @@
     <meta charset="UTF-8" />
     <title>genshin-overview-vue3</title>
     <script src="../../data/js/vue3.global.prod.js"></script>
-    <link rel="preload" crossorigin="anonymous" as="script" href="component/common/param.js" />
-    <link rel="preload" crossorigin="anonymous" as="script" href="component/common/html.js" />
-    <link rel="preload" crossorigin="anonymous" as="script" href="component/overview/app.js" />
+    <link rel="preload" href="../../data/font/SourceHanSerifSC-Heavy.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="../../data/font/SourceHanSans-Regular.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" as="script" href="component/common/param.js" crossorigin />
+    <link rel="preload" as="script" href="component/common/html.js" crossorigin />
+    <link rel="preload" as="script" href="component/overview/app.js" crossorigin />
+    <link
+      rel="preload"
+      href="../../data/font/SourceHanSerifSC-Regular-Subset.otf"
+      as="font"
+      type="font/otf"
+      crossorigin
+    />
+    <link rel="preload" as="script" href="component/overview/characterInfoBox.js" crossorigin />
+    <link rel="preload" as="script" href="component/overview/weaponInfoBox.js" crossorigin />
     <link rel="stylesheet" href="component/overview/overview.css" />
     <link rel="icon" href="data:," />
   </head>
@@ -14,6 +25,7 @@
     <div id="app"></div>
     <script type="module">
       import App from "./component/overview/app.js";
+
       Vue.createApp(App).mount("#app");
     </script>
   </body>

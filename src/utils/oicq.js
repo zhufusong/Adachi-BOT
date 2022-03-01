@@ -1,11 +1,10 @@
 /* ========================================================================== *
  * 因为 oicq 维护的兼容 API 有问题，所以在此重新实现。另外添加了一些自己的封装。
  * ========================================================================== */
-
 import lodash from "lodash";
 import querystring from "querystring";
 import { genDmMessageId } from "oicq/lib/message/message.js";
-import { matchBracket } from "./tools.js";
+import { matchBracket } from "#utils/tools";
 
 const CQ = {
   "&#91;": "[",
@@ -49,7 +48,7 @@ function qs(text, sep = ",", equal = "=") {
 
 // BREAKING 参数已改变
 function toCqcode(msg = {}) {
-  const isQuote = lodash.hasIn(msg, ["source", "message"]);
+  const isQuote = lodash.hasIn(msg, "source.message");
   let cqcode = "";
   let firstAtParsed = false;
 

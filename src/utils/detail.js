@@ -1,9 +1,9 @@
+import lodash from "lodash";
 import moment from "moment-timezone";
 import pLimit from "p-limit";
-import lodash from "lodash";
-import db from "./database.js";
-import { getCookie, tryToWarnInvalidCookie } from "./cookie.js";
-import { getAbyDetail, getBase, getCharacters, getIndex } from "./api.js";
+import { getAbyDetail, getBase, getCharacters, getIndex } from "#utils/api";
+import { getCookie, tryToWarnInvalidCookie } from "#utils/cookie";
+import db from "#utils/database";
 
 function detailError(message, cache = false, master = false, message_master = "") {
   return { detail: true, message, cache, master, message_master };
@@ -67,19 +67,19 @@ function handleDetailError(msg, e) {
 }
 
 function userInitialize(uid, nickname, level) {
-  if (!db.includes("character", "record", "uid", uid)) {
+  if (!db.includes("character", "record", { uid })) {
     db.push("character", "record", { uid, roles: [] });
   }
 
-  if (!db.includes("time", "user", "uid", uid)) {
+  if (!db.includes("time", "user", { uid })) {
     db.push("time", "user", { uid, time: 0 });
   }
 
-  if (!db.includes("time", "user", "aby", uid)) {
+  if (!db.includes("time", "user", { aby: uid })) {
     db.push("time", "user", { aby: uid, time: 0 });
   }
 
-  if (!db.includes("info", "user", "uid", uid)) {
+  if (!db.includes("info", "user", { uid })) {
     const initData = {
       retcode: 19260817,
       message: "init message",
@@ -159,7 +159,7 @@ async function abyDetail(uid, server, userID, schedule_type, bot) {
     throw detailError("无渊月螺旋记录。");
   }
 
-  if (!db.includes("aby", "user", "uid", uid)) {
+  if (!db.includes("aby", "user", { uid })) {
     db.push("aby", "user", { uid, data: {} });
   }
 
@@ -202,7 +202,7 @@ async function baseDetail(mhyID, userID, bot) {
   userInitialize(uid, nickname, level);
   db.update("info", "user", { uid }, { level, nickname });
 
-  if (db.includes("map", "user", "userID", userID)) {
+  if (db.includes("map", "user", { userID })) {
     db.update("map", "user", { userID }, { UID: uid });
   }
 

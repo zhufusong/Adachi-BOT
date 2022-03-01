@@ -1,9 +1,9 @@
-import schedule from "node-schedule";
 import express from "express";
-import db from "./database.js";
-import { renderClose } from "./render.js";
-import { mysNewsNotice } from "./notice.js";
-import { gachaUpdate, mysNewsUpdate } from "./update.js";
+import schedule from "node-schedule";
+import db from "#utils/database";
+import { mysNewsNotice } from "#utils/notice";
+import { renderClose, renderOpen, renderPath } from "#utils/render";
+import { gachaUpdate, mysNewsUpdate } from "#utils/update";
 
 let postRunning = false;
 
@@ -20,6 +20,11 @@ function initDB() {
   db.init("music", { source: [] });
   db.init("news", { data: {}, timestamp: [] });
   db.init("time");
+}
+
+async function initBrowser() {
+  global.bots.logger.debug(`正在从 ${renderPath} 拉起浏览器实例。`);
+  await renderOpen();
 }
 
 function doDBClean(name) {
@@ -92,6 +97,7 @@ async function init() {
 
   serve(9934);
   initDB();
+  await initBrowser();
   await updateGachaJob();
   cleanDBJob();
   syncDBJob();

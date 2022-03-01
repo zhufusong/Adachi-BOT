@@ -1,5 +1,4 @@
 // noinspection DuplicatedCode
-
 import { html } from "../common/html.js";
 import characterShowbox from "./characterShowbox.js";
 
@@ -61,11 +60,11 @@ const chamber = defineComponent({
   },
   methods: {
     padLeftZero(str) {
-      return ("00" + str).substr(str.length);
+      return ("00" + str).substring(str.length);
     },
     formatDate(date, fmt) {
       if (/(y+)/.test(fmt)) {
-        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
+        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substring(4 - RegExp.$1.length));
       }
       const o = {
         "M+": date.getMonth() + 1,

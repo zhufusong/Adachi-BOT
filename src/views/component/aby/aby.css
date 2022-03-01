@@ -3,41 +3,43 @@
 @font-face {
   /* 用来显示渊星的自创字体，符号是星号"*" */
   font-family: "Genshin Abyss";
-  font-display: block;
+  font-display: swap;
   src: url("../../../../data/font/Genshin-Abyss.ttf");
 }
 
 @font-face {
   font-family: "Source Han Sans CN";
-  font-display: block;
+  font-display: swap;
   src: url("../../../../data/font/SourceHanSans-Regular.otf");
 }
 
 @font-face {
   font-family: "Source Han Serif SC Regular Subset";
-  font-display: block;
+  font-display: swap;
   src: url("../../../../data/font/SourceHanSerifSC-Regular-Subset.otf");
 }
 
 @font-face {
   font-family: "Khaenriah";
-  font-display: block;
+  font-display: swap;
   src: url("../../../../data/font/Khaenriah.otf");
 }
 
 * {
   margin: 0;
   padding: 0;
-  letter-spacing: 0.05em;
-  font-family: "Source Han Sans CN", sans-serif;
-  color: #d9c291;
-  -webkit-text-stroke: 0.018em;
 }
 
 html,
 body {
   width: 428px;
   background: #faf2e7;
+  letter-spacing: 0.05em;
+  font-family: "Source Han Sans CN", sans-serif;
+  color: #d9c291;
+  -webkit-text-stroke: 0.018em;
+  margin: 0;
+  padding: 0;
 }
 
 .container-vertical,

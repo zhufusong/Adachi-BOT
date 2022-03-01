@@ -1,20 +1,20 @@
-import path from "path";
 import lodash from "lodash";
-import db from "./database.js";
-import { checkAuth } from "./auth.js";
-import { getCache } from "./cache.js";
+import path from "path";
+import { checkAuth } from "#utils/auth";
+import { getCache } from "#utils/cache";
+import db from "#utils/database";
 
 const running = { mysNewsNotice: false };
 
 function initDB() {
   for (const t of ["announcement", "event", "information"]) {
-    if (!db.includes("news", "timestamp", "type", t)) {
+    if (!db.includes("news", "timestamp", { type: t })) {
       db.push("news", "timestamp", { type: t, time: 0 });
     }
   }
 }
 
-async function mysNewsNotice() {
+async function mysNewsNotice(withImg = true) {
   if (1 !== global.config.noticeMysNews) {
     return;
   }
@@ -32,7 +32,7 @@ async function mysNewsNotice() {
   const data = db.get("news", "data");
 
   for (const t of Object.keys(data)) {
-    if (!lodash.hasIn(data[t], ["data", "list"]) || !Array.isArray(data[t].data.list)) {
+    if (!lodash.hasIn(data[t], "data.list") || !Array.isArray(data[t].data.list)) {
       continue;
     }
 
@@ -50,7 +50,7 @@ async function mysNewsNotice() {
       const { subject, content } = post;
       let image;
 
-      if ("string" === typeof post.images[0]) {
+      if (true === withImg && "string" === typeof post.images[0]) {
         try {
           image = await getCache(post.images[0], cacheDir, "base64");
         } catch (e) {

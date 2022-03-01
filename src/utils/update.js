@@ -1,6 +1,6 @@
 import lodash from "lodash";
-import db from "./database.js";
-import { getGachaDetail, getGachaList, getMysNews } from "./api.js";
+import { getGachaDetail, getGachaList, getMysNews } from "#utils/api";
+import db from "#utils/database";
 
 async function parseGachaData(gachaID) {
   let res;
@@ -56,7 +56,7 @@ async function gachaUpdate() {
     return false;
   }
 
-  if (lodash.hasIn(info, ["data", "list"]) && Array.isArray(info.data.list)) {
+  if (lodash.hasIn(info, "data.list") && Array.isArray(info.data.list)) {
     for (const c of info.data.list) {
       if (!lodash.hasIn(data, c.gacha_type)) {
         if (undefined === (data[c.gacha_type] = await parseGachaData(c.gacha_id))) {

@@ -1,11 +1,11 @@
-import path from "path";
 import lodash from "lodash";
-import { getCache } from "../../utils/cache.js";
-import { render } from "../../utils/render.js";
-import { getWordByRegex } from "../../utils/tools.js";
+import path from "path";
+import { getCache } from "#utils/cache";
+import { render } from "#utils/render";
+import { getWordByRegex } from "#utils/tools";
 
 const getUrl = (p) => `https://upload-bbs.mihoyo.com/upload/${"/" === p[0] ? p.substring(1) : p}`;
-const urls = { weekly: getUrl("/2022/01/05/75833613/93626b52c4c06b537783346dfb6a7126_4957845255838694552.png") };
+const urls = { weekly: getUrl("/2022/02/18/75833613/15b472dcd67a67016ece772e8528faf0_2513941823560578118.png") };
 
 async function doMaterial(msg, url) {
   const cacheDir = path.resolve(global.rootdir, "data", "image", "material");

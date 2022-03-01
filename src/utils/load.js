@@ -1,9 +1,9 @@
 import fs from "fs";
-import path from "path";
 import lodash from "lodash";
-import { checkAuth } from "./auth.js";
-import { isGroupBan, toCqcode } from "./oicq.js";
-import { getRandomInt } from "./tools.js";
+import path from "path";
+import { checkAuth } from "#utils/auth";
+import { isGroupBan, toCqcode } from "#utils/oicq";
+import { getRandomInt } from "#utils/tools";
 
 // 无需加锁
 const timestamp = {};
@@ -104,7 +104,7 @@ function doPossibleCommand(msg, plugins, type, bot) {
       }
 
       // 同步 oicq 数据结构
-      if (lodash.hasIn(msg.message, [0, "text"])) {
+      if (lodash.hasIn(msg.message, "[0].text")) {
         msg.message = lodash.chain(msg.message).filter({ type: "text" }).slice(0, 1).value();
         msg.message[0].text = msg.raw_message;
       }

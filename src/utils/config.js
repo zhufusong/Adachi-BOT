@@ -180,16 +180,34 @@
  * ==========================================================================
  * global.menu
  * --------------------------------------------------------------------------
- * { breakfast: [ '萝卜时蔬汤' ], lunch: [ '蜜酱胡萝卜煎肉' ], dinner: [ '蟹黄火腿焗时蔬' ] }
+ * {
+ *   eat: {
+ *     breakfast: [ '庄园烤松饼' ],
+ *     lunch: [ '蜜酱胡萝卜煎肉' ],
+ *     dinner: [ '甜甜花酿鸡' ],
+ *     snack: [ '蓝莓山药' ]
+ *   },
+ *   drink: { base: [ '燕麦奶茶' ], topping: [ '芋泥' ], sweetness: [ '无糖' ] }
+ * }
  * --------------------------------------------------------------------------
  * ../../config/menu.yml
  * --------------------------------------------------------------------------
- * breakfast:
- *   - 萝卜时蔬汤
- * lunch:
- *   - 蜜酱胡萝卜煎肉
- * dinner:
- *   - 蟹黄火腿焗时蔬
+ * eat:
+ *   breakfast:
+ *     - 庄园烤松饼
+ *   lunch:
+ *     - 蜜酱胡萝卜煎肉
+ *   dinner:
+ *     - 甜甜花酿鸡
+ *   snack:
+ *     - 蓝莓山药
+ * drink:
+ *   base:
+ *     - 燕麦奶茶
+ *   topping:
+ *     - 芋泥
+ *   sweetness:
+ *     - 无糖
  * ==========================================================================
  *
  *
@@ -361,13 +379,12 @@
  * ==========================================================================
  *                            以上为数据结构
  * ========================================================================== */
-
 import fs from "fs";
+import lodash from "lodash";
 import path from "path";
 import url from "url";
-import lodash from "lodash";
-import { loadYML } from "./yaml.js";
-import { ls } from "./file.js";
+import { ls } from "#utils/file";
+import { loadYML } from "#utils/yaml";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -455,7 +472,15 @@ function getCommand(obj, key) {
               if ("string" === typeof o) {
                 return o.toLowerCase();
               } else if (Array.isArray(o)) {
-                return lodash.transform(o, (r, c) => r.push("string" === typeof c ? c.toLowerCase() : c));
+                return lodash.transform(o, (r, c) =>
+                  r.push(
+                    Array.isArray(c)
+                      ? c.map((e) => ("string" === typeof e ? e.toLowerCase() : e))
+                      : "string" === typeof c
+                      ? c.toLowerCase()
+                      : c
+                  )
+                );
               } else {
                 return lodash.transform(o, (r, v, k) => {
                   r[(k = "string" === typeof k ? k.toLowerCase() : k)] = "string" === typeof v ? v.toLowerCase() : v;
@@ -523,7 +548,6 @@ function getCommand(obj, key) {
     global[key].functions.options,
     (p, v, k) => {
       v.forEach((c) => {
-        c[1] = c[1].toString();
         lodash.assign(p[k] || (p[k] = {}), {
           [c[0]]: "string" === typeof c[1] ? c[1].toLowerCase() : c[1],
         });
@@ -577,27 +601,31 @@ function makeUsage(obj) {
     for (const func of functionList.keys()) {
       if (true === obj.functions.show[func] && obj.functions.name[func]) {
         const type = obj.functions.type[func] || "command";
+        const optionsText = obj.functions.options[func]
+          ? lodash.flatten(Object.values(obj.functions.options[func])).join("、")
+          : "";
 
-        text +=
-          listMark +
-          " " +
-          (true === obj.functions.revert[func]
-            ? ("option" === type
-                ? null !== obj.functions.options[func] && Object.values(obj.functions.options[func]).join("、")
-                : "") +
-              obj.functions.name[func] +
-              " " +
-              (null !== obj.functions.usage[func] ? obj.functions.usage[func] + " " : "")
-            : obj.functions.name[func] +
-              " " +
-              (null !== obj.functions.usage[func] ? obj.functions.usage[func] + " " : "") +
-              ("option" === type
-                ? (null !== obj.functions.options[func] &&
-                    "<" + Object.values(obj.functions.options[func]).join("、")) + "> "
-                : "")) +
-          (null !== obj.functions.description[func] ? commentMark + " " : "") +
-          (obj.functions.description[func] || "") +
-          "\n";
+        text += `${listMark} `;
+
+        if ("option" === type && true === obj.functions.revert[func]) {
+          text += optionsText;
+        }
+
+        text += `${obj.functions.name[func]} `;
+
+        if (null !== obj.functions.usage[func]) {
+          text += `${obj.functions.usage[func]} `;
+        }
+
+        if ("option" === type && true !== obj.functions.revert[func]) {
+          text += `<${optionsText}> `;
+        }
+
+        if (null !== obj.functions.description[func]) {
+          text += `${commentMark} `;
+        }
+
+        text += `${obj.functions.description[func] || ""}\n`;
       }
     }
   }
@@ -765,12 +793,14 @@ function readGreeting() {
 }
 
 function readMenu() {
-  global.menu = Menu;
+  const parse = (o) => Object.keys(o).forEach((k) => (o[k] = Array.isArray(o[k]) ? o[k] : o[k] ? [o[k]] : []));
 
-  // menu 中每个值均为数组
-  Object.keys(global.menu).forEach(
-    (k) => (global.menu[k] = Array.isArray(global.menu[k]) ? global.menu[k] : global.menu[k] ? [global.menu[k]] : [])
-  );
+  global.menu = {};
+  global.menu.eat = Menu.eat || {};
+  global.menu.drink = Menu.drink || {};
+
+  parse(global.menu.eat);
+  parse(global.menu.drink);
 }
 
 function readProphecy() {
@@ -899,8 +929,9 @@ function readArtifacts() {
 // Call after readNames()
 //
 // global.info.character    -> array of { type, title, id , name, introduce, birthday, element, cv, constellationName,
-//                                        rarity, mainStat, mainValue, baseATK, ascensionMaterials, levelUpMaterials,
-//                                        talentMaterials, time, constellations }, sorted by rarity
+//                                        rarity, mainStat, mainValue, baseATK, passiveTitle, passiveDesc,
+//                                        ascensionMaterials, levelUpMaterials, talentMaterials, time,
+//                                        constellations }, sorted by rarity
 // global.info.weapon       -> array of { type, title, name, introduce, access, rarity, mainStat, mainValue, baseATK,
 //                                        ascensionMaterials, time, skillName, skillContent }, sorted by rarity
 function readInfo() {
