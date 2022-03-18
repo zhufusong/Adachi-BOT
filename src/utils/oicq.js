@@ -29,7 +29,7 @@ function qs(text, sep = ",", equal = "=") {
     }
 
     ret[c.substring(0, i)] = c
-      .substr(i + 1)
+      .substring(i + 1)
       .replace(new RegExp(Object.values(CQInside).join("|"), "g"), (s) => lodash.invert(CQInside)[s] || "");
   });
 
@@ -50,7 +50,6 @@ function qs(text, sep = ",", equal = "=") {
 function toCqcode(msg = {}) {
   const isQuote = lodash.hasIn(msg, "source.message");
   let cqcode = "";
-  let firstAtParsed = false;
 
   if (true === isQuote) {
     const quote = { ...msg.source, flag: 1 };
@@ -71,11 +70,6 @@ function toCqcode(msg = {}) {
     const cq = `[CQ:${c.type}${s ? "," : ""}${s}]`;
 
     cqcode += cq;
-
-    if ("at" === c.type && false === firstAtParsed && true === isQuote) {
-      cqcode += cq;
-      firstAtParsed = true;
-    }
   });
 
   return cqcode;
@@ -113,7 +107,6 @@ function fromCqcode(text = "") {
           items.push(text.substring(i, pos + 1));
           i = pos;
           itemsSize = items.length;
-          continue;
         }
     }
   }
@@ -122,12 +115,12 @@ function fromCqcode(text = "") {
     const s = c.replace(new RegExp(Object.keys(CQ).join("|"), "g"), (s) => CQ[s] || "");
     let cq = c.replace("[CQ:", "type=");
 
-    if ("string" === typeof s && "" !== s && false === s.includes("[CQ:")) {
+    if ("string" === typeof s && "" !== s && !s.includes("[CQ:")) {
       elems.push({ type: "text", text: s });
       continue;
     }
 
-    cq = cq.substr(0, cq.length - 1);
+    cq = cq.substring(0, cq.length - 1);
     elems.push(qs(cq));
   }
 
@@ -153,7 +146,27 @@ function isGroupBan(msg = {}, type, bot) {
   return false;
 }
 
-async function isStranger(bot, group, id) {
+function isFriend(bot, id) {
+  for (const [, f] of bot.fl) {
+    if (id === f.user_id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isGroup(bot, id) {
+  for (const [, g] of bot.gl) {
+    if (id === g.group_id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function isInGroup(bot, group, id) {
   const members = await bot.getGroupMemberList(group);
 
   for (const [, m] of members) {
@@ -163,6 +176,19 @@ async function isStranger(bot, group, id) {
   }
 
   return false;
+}
+
+// return number or undefined
+async function getGroupOfStranger(bot, id) {
+  if (!isFriend(bot, id)) {
+    for (const [, g] of bot.gl) {
+      if (await isInGroup(bot, g.group_id, id)) {
+        return g.group_id;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 async function say(
@@ -181,7 +207,7 @@ async function say(
         case "group": {
           const ginfo = await bot.getGroupInfo(id);
 
-          if (true === isGroupBan({ group_id: ginfo.group_id, group_name: ginfo.group_name }, type, bot)) {
+          if (isGroupBan({ group_id: ginfo.group_id, group_name: ginfo.group_name }, type, bot)) {
             return;
           }
 
@@ -202,28 +228,18 @@ async function say(
           break;
         }
         case "private": {
-          let isFriend = false;
-
-          for (const [, f] of bot.fl) {
-            if (id === f.user_id) {
-              isFriend = true;
-              break;
-            }
-          }
-
-          if (true === isFriend) {
+          if (isFriend(bot, id)) {
             bot.sendPrivateMsg(id, fromCqcode(msg));
             return;
           }
 
-          let gid;
-
-          for (const [, g] of bot.gl) {
-            if (true === (await isStranger(bot, g.group_id, id))) {
-              gid = g.group_id;
-              break;
-            }
+          if (1 !== global.config.replyStranger) {
+            throw `不回复陌生人 ${id} 的消息`;
           }
+
+          // FIXME 传参缺陷，这里只能再次调用 getGroupOfStranger
+          // XXX   此处如更改需要确保向前兼容
+          const gid = await getGroupOfStranger(bot, id);
 
           if (undefined === gid) {
             throw `未找到陌生人 ${id} 所在的群组`;
@@ -259,7 +275,7 @@ function boardcast(bot, msg = "", type = "group", check = () => true) {
   let count = 0;
 
   list.forEach((c) => {
-    if (true === check(c)) {
+    if (check(c)) {
       // 广播无法 @
       const send = () => say(bot, isGroup ? c.group_id : c.user_id, msg, type);
 
@@ -290,4 +306,15 @@ function boardcast(bot, msg = "", type = "group", check = () => true) {
   return delay * count;
 }
 
-export { boardcast, isGroupBan, isStranger, say, sayMaster, toCqcode };
+export {
+  boardcast,
+  fromCqcode,
+  getGroupOfStranger,
+  isFriend,
+  isGroup,
+  isGroupBan,
+  isInGroup,
+  say,
+  sayMaster,
+  toCqcode,
+};

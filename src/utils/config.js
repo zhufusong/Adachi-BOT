@@ -10,6 +10,18 @@
  * ==========================================================================
  *
  * ==========================================================================
+ * datadir
+ * --------------------------------------------------------------------------
+ * '/path/to/Adachi-BOT/data'
+ * ==========================================================================
+ *
+ * ==========================================================================
+ * oicqdir
+ * --------------------------------------------------------------------------
+ * '/path/to/Adachi-BOT/data'
+ * ==========================================================================
+ *
+ * ==========================================================================
  * package
  * --------------------------------------------------------------------------
  * context of this project's package.json
@@ -41,7 +53,7 @@
  *     options: { eat: { apple: '苹果', banana: '香蕉', egg: '蛋' } }
  *   },
  *   enable: { hello_world: true, eat: true },
- *   weights: { hello_world: 9999, eat: 9999 },
+ *   weights: { hello_world: 9999, eat: 9989 },
  *   regex: {
  *     '^hello\\sworld(!)?\\s*$': [ 'hello_world' ],
  *     '^eat\\s*\\S+\\s*$': [ 'eat' ]
@@ -73,7 +85,7 @@
  *         - ^hello
  * Eat:
  *   enable: true
- *   weights: 9999
+ *   weights: 9989
  *   regex:
  *     - ^eat\s*\S+\s*$
  *   functions:
@@ -103,7 +115,8 @@
  *   prefixes: [ null ],
  *   atMe: 1,
  *   atUser: 1,
- *   repeatProb: 100,
+ *   replyStranger: 1,
+ *   repeatProb: 1,
  *   groupHello: 1,
  *   groupGreetingNew: 1,
  *   friendGreetingNew: 1,
@@ -130,6 +143,7 @@
  *   - 987654321
  * atMe: 1
  * atUser: 1
+ * replyStranger: 1
  * repeatProb: 1
  * groupHello: 1
  * groupGreetingNew: 1
@@ -390,6 +404,8 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 global.rootdir = path.resolve(__dirname, "..", "..");
+global.datadir = path.resolve(global.rootdir, "data");
+global.oicqdir = global.datadir;
 
 global.all = {};
 global.artifacts = {};
@@ -483,7 +499,7 @@ function getCommand(obj, key) {
                 );
               } else {
                 return lodash.transform(o, (r, v, k) => {
-                  r[(k = "string" === typeof k ? k.toLowerCase() : k)] = "string" === typeof v ? v.toLowerCase() : v;
+                  r["string" === typeof k ? k.toLowerCase() : k] = "string" === typeof v ? v.toLowerCase() : v;
                 });
               }
             };
@@ -544,19 +560,6 @@ function getCommand(obj, key) {
     {}
   );
 
-  global[key].functions.options = lodash.reduce(
-    global[key].functions.options,
-    (p, v, k) => {
-      v.forEach((c) => {
-        lodash.assign(p[k] || (p[k] = {}), {
-          [c[0]]: "string" === typeof c[1] ? c[1].toLowerCase() : c[1],
-        });
-      });
-      return p;
-    },
-    {}
-  );
-
   // 所有 switch 转换为 option
   if (global[key].functions.type) {
     Object.keys(global[key].functions.type).forEach((f) => {
@@ -566,10 +569,25 @@ function getCommand(obj, key) {
           .chain({})
           .assign({ on: "on" }, { off: "off" }, global[key].functions.options[f] || {})
           .pick(["on", "off"])
+          .toPairs()
           .value();
       }
     });
   }
+
+  global[key].functions.options = lodash.reduce(
+    global[key].functions.options,
+    (p, v, k) => {
+      v.forEach((c) => {
+        const value = undefined === c[1].toString ? c[1] : c[1].toString();
+        const opName = c[0];
+        const opValue = "string" === typeof value ? value.toLowerCase() : value;
+        lodash.assign(p[k] || (p[k] = {}), { [opName]: opValue });
+      });
+      return p;
+    },
+    {}
+  );
 }
 
 // obj: global.command or global.master
@@ -645,6 +663,8 @@ function readSetting() {
     atMe: 0,
     // 群聊回复时不 @ 用户
     atUser: 0,
+    // 不回复陌生人消息
+    replyStranger: 0,
     // 不复读群消息
     repeatProb: 0,
     // 不发送群通知
@@ -688,6 +708,7 @@ function readSetting() {
   const prefixes = Setting.prefixes;
   const atMe = parseInt(Setting.atMe);
   const atUser = parseInt(Setting.atUser);
+  const replyStranger = parseInt(Setting.replyStranger);
   const repeatProb = parseInt(parseFloat(Setting.repeatProb) * 100);
   const groupHello = parseInt(Setting.groupHello);
   const groupGreetingNew = parseInt(Setting.groupGreetingNew);
@@ -721,6 +742,7 @@ function readSetting() {
     },
     { atMe },
     { atUser },
+    { replyStranger },
     { repeatProb },
     { groupHello },
     { groupGreetingNew },

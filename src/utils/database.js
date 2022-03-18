@@ -1,9 +1,9 @@
-import fs from "fs";
 import lodash from "lodash";
-import { LowSync, MemorySync } from "lowdb";
 import path from "path";
+import { LowJSONCacheSync } from "#utils/lowdb";
 import { merge } from "#utils/merge";
 
+// 无需加锁
 const db = {};
 
 function mkpath(...path) {
@@ -47,44 +47,30 @@ function names() {
   return Object.keys(db) || [];
 }
 
-function file(dbName) {
-  return path.resolve(global.rootdir, "data", "db", `${dbName}.json`);
-}
-
-function saved(dbName) {
-  let data;
-
-  try {
-    data = JSON.parse(fs.readFileSync(file(dbName)));
-  } catch (e) {
-    // Do nothing
-  }
-
-  return data;
-}
-
 // 如果数据库不存在，将自动创建新的空数据库。
 function init(dbName, struct = { user: [] }) {
-  db[dbName] = new LowSync(new MemorySync());
-  db[dbName].read();
-  db[dbName].data = saved(dbName) || {};
+  const filename = path.resolve(global.datadir, "db", `${dbName}.json`);
+  db[dbName] = new LowJSONCacheSync(filename);
+  db[dbName].write(db[dbName].load() || {});
+
+  const data = db[dbName].read();
+  db[dbName].chain = lodash.chain(data);
+
   Object.keys(struct).forEach((c) => {
-    if (undefined === db[dbName].data[c]) {
-      Object.assign(db[dbName].data, { [c]: struct[c] });
+    if (undefined === data[c]) {
+      Object.assign(data, { [c]: struct[c] });
     }
   });
-  db[dbName].chain = lodash.chain(db[dbName].data);
 
   return true;
 }
 
 function sync(dbName) {
-  if (db[dbName]) {
-    fs.writeFileSync(file(dbName), JSON.stringify(db[dbName].data, null, 2));
-    return true;
-  }
+  return db[dbName].sync();
+}
 
-  return false;
+function file(dbName) {
+  return db[dbName].file();
 }
 
 function has(dbName, key, ...data) {
@@ -103,7 +89,7 @@ function has(dbName, key, ...data) {
 
   const result = db[dbName].chain.hasIn(path).value();
 
-  return result ? true : false;
+  return !!result;
 }
 
 function includes(dbName, key, ...data) {
@@ -131,8 +117,16 @@ function includes(dbName, key, ...data) {
       predicate = data[1];
     }
 
-    if (true === db[dbName].chain.get(path).some(predicate).value()) {
-      return true;
+    const obj = db[dbName].chain.get(path).value();
+
+    if (Array.isArray(obj)) {
+      if (lodash.some(obj, predicate)) {
+        return true;
+      }
+    } else {
+      if (lodash.isEqual(obj, Object.assign({}, obj, predicate))) {
+        return true;
+      }
     }
   }
 
@@ -164,14 +158,20 @@ function remove(dbName, key, ...data) {
   }
 
   if (!Array.isArray(value) && lodash.isEmpty(value)) {
-    const list = path.split(".");
+    const list = path
+      .replace(/[[\]]/g, ".")
+      .split(".")
+      .filter((c) => "" !== c);
 
     if (list.length > 1) {
       const pathNew = list.slice(0, -1);
       const obj = db[dbName].chain.get(pathNew).value();
       const last = list[list.length - 1];
+      const number = parseInt(last);
 
-      if (last.endsWith("]")) {
+      if (isNaN(number)) {
+        delete obj[list.slice(-1)[0]];
+      } else {
         const number = parseInt(last);
 
         if (!Array.isArray(obj)) {
@@ -179,10 +179,6 @@ function remove(dbName, key, ...data) {
         }
 
         obj.splice(number, 1);
-      } else {
-        const key = list.slice(-1)[0];
-
-        delete obj[key];
       }
     }
   } else {
@@ -199,27 +195,26 @@ function get(dbName, key, ...data) {
 
   const [path, predicate] = parsed(key, ...data);
   const whole = 0 === data.length || (1 === data.length && "string" === typeof data[0]);
+  const obj = db[dbName].chain.get(path).value();
   let result;
 
   if (true === whole) {
-    result = db[dbName].chain.get(path).value();
-  } else {
-    const obj = db[dbName].chain.get(path).value();
-
-    if (!obj) {
-      result = undefined;
-    } else if (!Array.isArray(obj)) {
-      if (lodash.some(obj, predicate)) {
-        result = obj;
-      } else {
-        result = undefined;
-      }
-    } else {
-      result = merge(...lodash.chain(obj).filter(predicate).reverse().value());
-    }
+    return obj;
   }
 
-  return true === lodash.isEmpty(result) ? undefined : result;
+  if (!obj) {
+    result = undefined;
+  } else if (!Array.isArray(obj)) {
+    if (lodash.isEqual(obj, Object.assign({}, obj, predicate))) {
+      result = obj;
+    } else {
+      result = undefined;
+    }
+  } else {
+    result = merge(...lodash.chain(obj).filter(predicate).reverse().value());
+  }
+
+  return lodash.isEmpty(result) ? undefined : result;
 }
 
 function set(dbName, key, ...data) {
@@ -268,8 +263,12 @@ function update(dbName, key, ...data) {
     dataNew = merge(dataOld, value);
   }
 
-  if (true === remove(dbName, path, index)) {
-    return push(dbName, path, dataNew);
+  if (remove(dbName, path, index)) {
+    if (Array.isArray(get(dbName, path))) {
+      return push(dbName, path, dataNew);
+    } else {
+      return set(dbName, path, dataNew);
+    }
   }
 
   return false;

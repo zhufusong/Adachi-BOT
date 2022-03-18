@@ -1,8 +1,20 @@
 import fs from "fs";
+import lodash from "lodash";
 import path from "path";
 import puppeteer from "puppeteer";
 import { mkdir } from "#utils/file";
 
+// selector: 截图的页面元素。遵循 CSS 选择器语法。
+// hello:    耗时操作是否给提示
+// scale:    截图时的缩放比例。在纵横方向上各应使用多少屏幕实际像素来绘制单个CSS像素。效果约等同于 devicePixelRatio 。
+// delete:   是否撤回消息
+//
+// selector -> view (string): selector (string)
+// hello    -> view (string): hello (boolean)
+// scale    -> view (string): scale (number)
+// hello    -> view (string): delete (boolean)
+//
+// 如果没有设置则使用 settingsDefault 中的默认值
 const settings = {
   selector: {},
   hello: {
@@ -22,15 +34,27 @@ const settings = {
     "genshin-gacha": true,
   },
 };
-const settingsDefault = { selector: "body", hello: false, scale: 1.5, delete: false };
+const settingsDefault = {
+  selector: "body",
+  hello: false,
+  scale: 1.5,
+  delete: false,
+};
 const renderPath = puppeteer.executablePath();
 
 async function renderOpen() {
   if (undefined === global.browser) {
     global.browser = await puppeteer.launch({
       defaultViewport: null,
-      headless: 0 === global.config.viewDebug,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--no-first-run", "--single-process", "--no-zygote"],
+      headless: lodash.hasIn(global.config, "viewDebug") ? 1 !== global.config.viewDebug : false,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--no-first-run",
+        "--process-per-site",
+        "--no-default-browser-check",
+        "--disable-infobars",
+      ],
       handleSIGINT: false,
       handleSIGTERM: false,
       handleSIGHUP: false,
@@ -46,7 +70,7 @@ async function renderClose() {
 }
 
 async function render(msg, data, name) {
-  const recordDir = path.resolve(global.rootdir, "data", "record");
+  const recordDir = path.resolve(global.datadir, "record");
   let binary;
 
   if ((settings.hello[name] || settingsDefault.hello) && global.config.warnTimeCosts && undefined !== msg.bot) {
@@ -103,7 +127,7 @@ async function render(msg, data, name) {
       omitBackground: true,
     });
 
-    if (0 === global.config.viewDebug) {
+    if (1 !== global.config.viewDebug) {
       await page.close();
     }
   } catch (e) {

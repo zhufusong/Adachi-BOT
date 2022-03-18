@@ -1,16 +1,17 @@
 import figlet from "figlet";
 import lodash from "lodash";
 import { createClient } from "oicq";
+import { dispatch } from "#bot/dispatch";
+import { init } from "#bot/init";
+import { loadPlugins } from "#bot/plugin";
 import { readConfig } from "#utils/config";
-import { init } from "#utils/init";
-import { loadPlugins, processed } from "#utils/load";
 import { boardcast, say, sayMaster } from "#utils/oicq";
 
 global.bots = [];
 
 function create() {
   for (const account of global.config.accounts) {
-    const bot = createClient(account.qq, { platform: account.platform, log_level: "debug" });
+    const bot = createClient(account.qq, { platform: account.platform, log_level: "debug", data_dir: global.oicqdir });
 
     bot.account = account;
     bot.boardcast = boardcast.bind(null, bot);
@@ -86,7 +87,7 @@ async function run() {
     ];
 
     for (const e of events) {
-      bot.on(e, (msg) => processed(msg, plugins, e, bot));
+      bot.on(e, (msg) => dispatch(msg, plugins, e, bot));
     }
 
     await new Promise((resolve) => {
@@ -97,7 +98,7 @@ async function run() {
       if ("string" === typeof bot.account.password) {
         bot.on("system.login.slider", () =>
           process.stdin.once("data", (input) => {
-            bot.sliderLogin(input.toString());
+            bot.submitSlider(input.toString());
             resolve();
           })
         );

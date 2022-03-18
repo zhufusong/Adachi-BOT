@@ -10,7 +10,7 @@
 @font-face {
   font-family: "Source Han Sans CN";
   font-display: swap;
-  src: url("../../../../data/font/SourceHanSans-Regular.otf");
+  src: url("../../../../data/font/SourceHanSansSC-Regular.otf");
 }
 
 @font-face {
@@ -37,7 +37,7 @@ body {
   letter-spacing: 0.05em;
   font-family: "Source Han Sans CN", sans-serif;
   color: #d9c291;
-  -webkit-text-stroke: 0.018em;
+  -webkit-text-stroke: 0.018em currentColor;
   margin: 0;
   padding: 0;
 }
@@ -208,7 +208,7 @@ body {
   width: 408px;
   overflow: hidden;
   white-space: nowrap;
-  -webkit-text-stroke: 0px;
+  -webkit-text-stroke: unset;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -216,6 +216,7 @@ body {
 
 .banner-title > p {
   text-shadow: 0 3px 6px rgb(0 0 0 / 25%);
+  transform: translateY(-0.06em);
 }
 
 .container-reveal-rank {
@@ -260,6 +261,7 @@ body {
 
 .showbox-label {
   color: #000;
+  transform: translateY(-0.06em);
 }
 
 .container-vertical.battle-rank {
@@ -347,6 +349,12 @@ body {
 .chamber-indicator {
   justify-self: start;
   font-size: 20px;
+  transform: translateY(-0.05em);
+}
+
+.chamber-indicator > span {
+  position: relative;
+  bottom: 0.1em;
 }
 
 .chamber-stars {
