@@ -44,6 +44,10 @@ async function mysNewsUpdate() {
 }
 
 async function mysNewsNotice(withImg = true) {
+  function mkContent(text) {
+    return "。！？～~".split("").includes(text[text.length - 1]) ? text : `${text} ……`;
+  }
+
   if (1 !== global.config.noticeMysNews) {
     return;
   }
@@ -62,12 +66,11 @@ async function mysNewsNotice(withImg = true) {
 
     silent[t] = 0 === db.get("news", "timestamp", { type: t }).time;
 
-    for (const n of lodash.sortBy(data[t].data.list, (c) => c.post.created_at)) {
+    for (const n of [...data[t].data.list].sort((a, b) => a.post.created_at - b.post.created_at)) {
       if (!lodash.hasIn(n, "post")) {
         continue;
       }
 
-      const mkContent = (c) => ("。！？～~".split("").includes(c[c.length - 1]) ? c : `${c} ……`);
       const post = n.post || {};
       const { subject, content } = post;
       const image = post.images[0];
@@ -89,7 +92,7 @@ async function mysNewsNotice(withImg = true) {
     }
   }
 
-  for (const n of lodash.sortBy(news, (n) => n.stamp)) {
+  for (const n of news.sort((a, b) => a.stamp - b.stamp)) {
     let image64;
 
     if (true === withImg && "string" === typeof n[1] && "" !== n[1]) {
