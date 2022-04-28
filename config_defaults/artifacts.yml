@@ -33,9 +33,105 @@ weights:
 values:
   #   HP      HP%     DEF    DEF%    ER%     EM     ATK    ATK%    CD%     CR% )
   - [ 298.75, 0.0583, 23.15, 0.0729, 0.0648, 23.31, 19.45, 0.0583, 0.0777, 0.0389 ]   # 一档
-  - [ 268.88, 0.0525, 20.83, 0.0656, 0.0583, 20.98, 17.51, 0.0525, 0.0699, 0.0350 ]   # 二挡
+  - [ 268.88, 0.0525, 20.83, 0.0656, 0.0583, 20.98, 17.51, 0.0525, 0.0699, 0.0350 ]   # 二档
   - [ 239.00, 0.0466, 18.52, 0.0583, 0.0518, 18.65, 15.56, 0.0466, 0.0622, 0.0311 ]   # 三档
   - [ 209.13, 0.0408, 16.20, 0.0510, 0.0453, 16.32, 13.62, 0.0408, 0.0544, 0.0272 ]   # 四档
+
+#
+# 圣遗物属性。
+# 顺序与 weights 和 values 对应，不可更改顺序。
+#
+props:
+  -
+    type: hp
+    name: 生命值                      # 小生命
+    mainValues: [ "717", "4780" ]
+    subValues: [ "209.13", "1792.5" ]
+  -
+    type: hp
+    name: 生命值                      # 大生命
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ 4.08%, 34.98% ]
+  -
+    type: df
+    name: 防御力                      # 小防御
+    mainValues: [ "0", "0" ]          # 不可能
+    subValues: [ "16.2", "138.9" ]
+  -
+    type: df
+    name: 防御力                      # 大防御
+    mainValues: [ 8.7%, 58.3% ]
+    subValues: [ 5.1%, 43.74% ]
+  -
+    type: er
+    name: 元素充能效率
+    mainValues: [ 7.8%, 51.8% ]
+    subValues: [ 4.53%, 38.88% ]
+  -
+    type: em
+    name: 元素精通
+    mainValues: [ "28", "187" ]
+    subValues: [ "16.32", "139.86" ]
+  -
+    type: atk
+    name: 攻击力                      # 小攻击
+    mainValues: [ "47", "311" ]
+    subValues: [ "13.62", "116.7" ]
+  -
+    type: atk
+    name: 攻击力                      # 大攻击
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ 4.08%, 34.98% ]
+  -
+    type: cd
+    name: 暴击伤害
+    mainValues: [ 9.3%, 62.2% ]
+    subValues: [ 5.44%, 46.62% ]
+  -
+    type: cr
+    name: 暴击率
+    mainValues: [ 4.7%, 31.1% ]
+    subValues: [ 2.72%, 23.34% ]
+  -
+    type: phys
+    name: 物理伤害加成
+    mainValues: [ 8.7%, 58.3% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: anemo
+    name: 风元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: cryo
+    name: 冰元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: elec
+    name: 雷元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: geo
+    name: 岩元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: hydro
+    name: 水元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: pyro
+    name: 火元素伤害加成
+    mainValues: [ 7.0%, 46.6% ]
+    subValues: [ "0", "0" ]           # 不可能
+  -
+    type: heal
+    name: 治疗加成
+    mainValues: [ 5.4%, 35.9% ]
+    subValues: [ "0", "0" ]           # 不可能
 
 #
 # 米游社 URL 到资源文件路径的部位 ID 转换。
@@ -236,6 +332,6 @@ domains:
     product: [ 18, 19 ]
   -
     id: 10
-    name: 新副本
+    name: 岩中幽谷
     alias: [ ]
     product: [ 20, 21 ]

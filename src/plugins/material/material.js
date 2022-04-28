@@ -1,13 +1,14 @@
 import lodash from "lodash";
+import moment from "moment-timezone";
 import path from "path";
 import { getCache } from "#utils/cache";
 import { render } from "#utils/render";
 import { getWordByRegex } from "#utils/tools";
 
-const mUrls = { weekly: getUrl("/2022/02/18/75833613/15b472dcd67a67016ece772e8528faf0_2513941823560578118.png") };
+const mUrls = { weekly: getUrl("/2022/03/29/75833613/7cef666b6a5fa3f12785e6e4406a060f_4832769786132969938.png") };
 
 function getUrl(p) {
-  return `https://upload-bbs.mihoyo.com/upload/${"/" === p[0] ? p.substring(1) : p}`;
+  return `https://uploadstatic.mihoyo.com/ys-obc/${"/" === p[0] ? p.substring(1) : p}`;
 }
 
 async function doMaterial(msg, url) {
@@ -23,7 +24,8 @@ async function doMaterial(msg, url) {
   const materialList = { 1: "MonThu", 2: "TueFri", 3: "WedSat", 4: "MonThu", 5: "TueFri", 6: "WedSat" };
   const dayOfZhou = ["日", "一", "二", "三", "四", "五", "六"].map((c) => `周${c}`);
   const [day] = getWordByRegex(msg.text, ".{2}");
-  const dayOfWeek = dayOfZhou.includes(day) ? dayOfZhou.indexOf(day) : new Date().getDay();
+  const serverWeekday = moment().tz("Asia/Shanghai").subtract(4, "hours").weekday();
+  const dayOfWeek = dayOfZhou.includes(day) ? dayOfZhou.indexOf(day) : serverWeekday;
 
   if (undefined === materialList[dayOfWeek]) {
     msg.bot.say(msg.sid, `${day}所有副本都可以刷哦。`, msg.type, msg.uid, true);
@@ -54,21 +56,23 @@ async function doMaterial(msg, url) {
     }
   });
 
-  items.weapon.forEach((c) => {
-    const ascension = lodash.cloneDeep(lodash.take(c.ascensionMaterials[0] || [], 3));
-    let hasIn = false;
+  items.weapon
+    .filter((c) => "number" === typeof c.rarity && c.rarity > 2)
+    .forEach((c) => {
+      const ascension = lodash.cloneDeep(lodash.take(c.ascensionMaterials[0] || [], 4));
+      let hasIn = false;
 
-    for (let i = 0; i < ascensions.weapon.length; ++i) {
-      if (lodash.isEqual(ascensions.weapon[i], ascension)) {
-        hasIn = true;
-        break;
+      for (let i = 0; i < ascensions.weapon.length; ++i) {
+        if (lodash.isEqual(ascensions.weapon[i], ascension)) {
+          hasIn = true;
+          break;
+        }
       }
-    }
 
-    if (false === hasIn) {
-      ascensions.weapon.push(ascension);
-    }
-  });
+      if (false === hasIn) {
+        ascensions.weapon.push(ascension);
+      }
+    });
 
   ascensions.character.forEach((n) => {
     const record = { ascension: n, list: [] };
@@ -88,7 +92,7 @@ async function doMaterial(msg, url) {
     const record = { ascension: n, list: [] };
 
     items.weapon.forEach((c) => {
-      const ascension = lodash.take(c.ascensionMaterials[0] || [], 3);
+      const ascension = lodash.take(c.ascensionMaterials[0] || [], 4);
 
       if (lodash.isEqual(ascension, n)) {
         record.list.push({ name: c.name, rarity: c.rarity });

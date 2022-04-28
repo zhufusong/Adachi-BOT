@@ -1,9 +1,7 @@
-// noinspection DuplicatedCode
 import { html, toReadableDate } from "../common/utils.js";
-import characterShowbox from "./characterShowbox.js";
+import { characterShowbox } from "./abyssComponents.js";
 
-// eslint-disable-next-line no-undef
-const { defineComponent } = Vue;
+const { defineComponent } = window.Vue;
 
 const chamberTemplate = html`
   <div class="container-vertical container-chamber-info">
@@ -11,13 +9,13 @@ const chamberTemplate = html`
       <div class="chamber-indicator">{{floorIndex}}<span>-</span>{{chamberIndex}}</div>
       <div class="chamber-stars">{{chamberStarCount}}</div>
       <div class="chamber-time" v-if="chamberTimestamp != 0">
-        <p>{{formatDate(new Date(chamberTimestamp * 1000), "yy/MM/dd")}}</p>
+        <p>{{formatDate(new Date(chamberTimestamp * 1000), "YY/mm/dd")}}</p>
         <p>
-          <span>{{formatDate(new Date(chamberTimestamp * 1000), "hh")}}</span>
+          <span>{{formatDate(new Date(chamberTimestamp * 1000), "HH")}}</span>
           <span class="kerning">:</span>
-          <span>{{formatDate(new Date(chamberTimestamp * 1000), "mm")}}</span>
+          <span>{{formatDate(new Date(chamberTimestamp * 1000), "MM")}}</span>
           <span class="kerning">:</span>
-          <span>{{formatDate(new Date(chamberTimestamp * 1000), "ss")}}</span>
+          <span>{{formatDate(new Date(chamberTimestamp * 1000), "SS")}}</span>
         </p>
       </div>
     </div>
@@ -46,7 +44,6 @@ const chamberTemplate = html`
     </div>
   </div>
 `;
-
 const chamber = defineComponent({
   name: "abyssChamber",
   template: chamberTemplate,
@@ -66,7 +63,6 @@ const chamber = defineComponent({
   setup(props) {
     const chamber = props.chamber;
     const chamberIndex = props.index;
-    const floorIndex = props.floorIndex;
     const chamberStars = chamber.star || 0;
     const chamberStarCount = "*".repeat(chamberStars);
     const chamberDetails = chamber.battles || [{}, {}];
@@ -96,8 +92,6 @@ const chamber = defineComponent({
     }
 
     return {
-      // eslint-disable-next-line vue/no-dupe-keys
-      floorIndex,
       chamberIndex,
       chamberStarCount,
       isValidChamberData,

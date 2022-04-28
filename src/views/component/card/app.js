@@ -1,18 +1,18 @@
 import { getParams, html } from "../common/utils.js";
-import { CharacterBox, ExplorationBox, HomeBox, SectionTitle } from "./cardComponents.js";
+import { CharacterBox, ExplorationBox, SectionTitle } from "./cardComponents.js";
 
-// eslint-disable-next-line no-undef
-const { defineComponent } = Vue;
+const { defineComponent } = window.Vue;
+const lodash = window._;
 
 const template = html`
   <div class="card-container">
     <img class="avatar" :src="namecardAvatar" />
     <div class="namecard-container" :style="{'background': nameCard}">
       <div class="player-info-container">
-        <p v-if="hasPlayerNameInfo" class="player-name">{{ data.nickname }}</p>
-        <p class="uid">UID {{ data.uid }}</p>
+        <p v-if="hasPlayerNameInfo" class="player-name">{{ playerNickname }}</p>
+        <p class="uid">UID {{ playerUid }}</p>
         <p v-if="hasLevelInfo" class="adventure-rank">冒险等阶</p>
-        <p v-if="hasLevelInfo" class="adventure-rank">{{ data.level }}</p>
+        <p v-if="hasLevelInfo" class="adventure-rank">{{ playerLevel }}</p>
       </div>
     </div>
     <div class="info-container">
@@ -41,13 +41,8 @@ const template = html`
         <p>{{ stats.luxurious_chest_number }}</p>
         <p>奇馈宝箱</p>
         <p>{{ stats.magic_chest_number }}</p>
-      </div>
-
-      <div class="section-container" id="serenity-pot">
-        <SectionTitle title="尘歌壶" :subtitle="homeboxSubtitle" />
-        <div class="container-homes">
-          <HomeBox v-for="home in homes" :data="home" />
-        </div>
+        <p>洞天仙力</p>
+        <p>{{ homeComfort }}</p>
       </div>
 
       <div class="section-container" id="world-exploration">
@@ -60,10 +55,10 @@ const template = html`
       <div class="section-container" id="character-box">
         <SectionTitle
           title="角色展柜"
-          :subtitle="data.avatars.length < stats.avatar_number ? '仅展示米游社人物展柜中的至多8个人物' : !1"
+          :subtitle="characters.length < stats.avatar_number ? '仅展示米游社人物展柜中的至多8个人物' : !1"
         />
         <div class="container-character-box main-content">
-          <CharacterBox v-for="a in data.avatars" :data="a" />
+          <CharacterBox v-for="character in characters" :data="character" />
         </div>
       </div>
       <!-- 数据 container 结束 -->
@@ -72,19 +67,17 @@ const template = html`
   </div>
 `;
 
-// noinspection DuplicatedCode
 export default defineComponent({
   name: "genshinCard",
   template: template,
   components: {
     SectionTitle,
-    HomeBox,
     ExplorationBox,
     CharacterBox,
   },
   setup() {
     const params = getParams(window.location.href);
-
+    const { uid, nickname, level } = params;
     const hasLevelInfo = params.level !== -1;
     const hasPlayerNameInfo = params.nickname !== "";
     const randomAvatarOrder = Math.floor(Math.random() * params.avatars.length);
@@ -105,27 +98,99 @@ export default defineComponent({
 
     const namecardAvatar = "" !== qqid ? `https://q1.qlogo.cn/g?b=qq&s=5&nk=${qqid}` : character;
 
-    const explorations = params.explorations.reverse();
+    const filterOfferingName = (string) => string.replace(/等级$/, "");
 
-    function homeData(name) {
-      const d = params.homes.find((el) => el.name === name);
-      return d || { name, level: -1 };
-    }
+    const getExplorationData = (e) => {
+      const { name, icon: iconUrl, exploration_percentage, level, id, parent_id, type, offerings } = e;
+      // noinspection NonAsciiCharacters
+      const displayData = {
+        探索进度: `${exploration_percentage / 10}%`,
+      };
 
-    const homeList = ["罗浮洞", "翠黛峰", "清琼岛", "绘绮庭"];
-    const homes = homeList.map((home) => homeData(home));
+      if ("reputation" === type.toLowerCase() && undefined !== level) {
+        displayData["声望等级"] = `Lv. ${level}`;
+      }
 
-    const comfort = Math.max(...Object.keys(homes).map((k) => homes[k].comfort_num || -Infinity));
-    const homeboxSubtitle = `洞天仙力：${comfort > 0 ? comfort : "暂无信息"}`;
+      for (const offering of offerings) {
+        const offeringName = filterOfferingName(offering.name) || "供奉等级";
+        displayData[offeringName] = `Lv. ${offering.level}`;
+      }
+
+      return {
+        name,
+        iconUrl,
+        id,
+        parent_id,
+        type,
+        displayData,
+      };
+    };
+
+    const getRegionName = (string) =>
+      string
+        .replace(/(蒙德|璃月|稻妻|须弥|纳塔|枫丹|至冬)(地区|区域)?/g, "")
+        .split(/[•・·]/g)
+        .pop();
+
+    const explorationReducer = (curr, next) => {
+      // 当 curr 为 object 时无法 spread，需要转换为 array
+      const currentArray = [].concat(curr);
+      const currentArea = currentArray.pop();
+      const {
+        name: currentName,
+        iconUrl: currentIconUrl,
+        id: currentId,
+        type: currentType,
+        displayData: currentData,
+      } = currentArea;
+      const { name: nextName, parent_id: nextParent, type: nextType, displayData: nextData } = next;
+
+      if (nextParent === currentId && currentType === nextType) {
+        const returnArea = {
+          name: currentName,
+          iconUrl: currentIconUrl,
+          id: currentId,
+          parent_id: 0,
+          type: currentType,
+        };
+        const displayData = {};
+        const currentAreaName = getRegionName(currentName);
+        const nextAreaName = getRegionName(nextName);
+
+        displayData[currentAreaName] = currentData["探索进度"] || "0%";
+
+        for (const [key, value] of Object.entries(nextData)) {
+          if ("探索进度" === key) {
+            displayData[nextAreaName] = value;
+          } else if (!(key in displayData)) {
+            displayData[key] = value;
+          }
+        }
+
+        returnArea.displayData = displayData;
+        return [...currentArray, returnArea];
+      }
+
+      return [...currentArray, currentArea, next];
+    };
+
+    const explorations = []
+      .concat(lodash.orderBy(params.explorations, "id", "asc").map((exploration) => getExplorationData(exploration)))
+      .reduce(explorationReducer);
+
+    const characters = params.avatars || [];
+    const homeComfort = Math.max(...params.homes.map((home) => home.comfort_num || 0));
 
     return {
-      data: params,
+      playerUid: uid,
+      playerNickname: nickname,
+      playerLevel: level,
       nameCard,
       namecardAvatar,
+      characters,
       explorations,
       stats: params.stats,
-      homes,
-      homeboxSubtitle,
+      homeComfort: "number" === typeof homeComfort && -Infinity !== homeComfort ? homeComfort : "暂无数据",
       hasLevelInfo,
       hasPlayerNameInfo,
     };

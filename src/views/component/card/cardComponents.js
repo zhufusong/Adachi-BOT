@@ -1,8 +1,6 @@
 import { html } from "../common/utils.js";
 
-// eslint-disable-next-line no-undef
-const { defineComponent } = Vue;
-
+const { defineComponent } = window.Vue;
 const titleTemplate = html` <div class="container-title">
   <div class="title-content">
     <img
@@ -19,7 +17,6 @@ const titleTemplate = html` <div class="container-title">
     <div class="subtitle" v-show="subtitle">{{ subtitle }}</div>
   </div>
 </div>`;
-
 const SectionTitle = defineComponent({
   name: "SectionTitle",
   template: titleTemplate,
@@ -28,7 +25,6 @@ const SectionTitle = defineComponent({
     subtitle: [String, Boolean],
   },
 });
-
 const charBoxTemplate = html` <div class="character-box">
   <div class="container-char-headups">
     <img v-if="data.element !== 'None'" class="element" :src="element" alt="ERROR" />
@@ -54,15 +50,14 @@ const charBoxTemplate = html` <div class="character-box">
   <div class="char-info">
     <div class="container-char-info character-briefing">
       <span class="char-level">Lv.{{ data.level }}</span>
-      <span class="char-fetter">好感{{ data.fetter }}</span>
+      <span v-if="'旅行者' !== data.name" class="char-fetter">好感{{ data.fetter }}</span>
     </div>
-    <div class="container-char-info weapon-briefing">
+    <div class="container-char-info weapon-briefing" :style="additionalStyle">
       <span class="weapon-name">{{ data.weapon.name }}</span>
-      <span class="weapon-affix"> 精{{ data.weapon.affix_level }}</span>
+      <span class="weapon-affix">精{{ data.weapon.affix_level }}</span>
     </div>
   </div>
 </div>`;
-
 const CharacterBox = defineComponent({
   name: "CharacterBox",
   template: charBoxTemplate,
@@ -81,29 +76,32 @@ const CharacterBox = defineComponent({
     const hasCostume = props.data.costumes.length !== 0;
     const costumePath = hasCostume ? getCostume(props.data.costumes[0]["name"]) : "";
 
-    return { starBackground, element, hasCostume, costumePath };
+    const weaponNameLength = props.data.weapon.name.length || 5;
+    const additionalStyle = weaponNameLength > 5 ? "font-size: 9px;" : undefined;
+
+    return { starBackground, element, hasCostume, costumePath, additionalStyle };
   },
 });
-
 const explorationBoxTemplate = html` <div class="exploration">
   <div class="exp-area">
     <div class="logo" :style="{maskImage : 'url(' + areaLogo + ')'}"></div>
-    <div class="container-detailed-exploration">
-      <p>探索进度</p>
-      <p class="align-right">{{ explorationPercentage }}%</p>
-      <p v-if="data.type === 'Reputation'">声望等级</p>
-      <p class="align-right" v-if="data.type === 'Reputation'">Lv. {{ data.level }}</p>
-      <p v-if="data.offerings.length !== 0">{{ data.offerings[0]["name"] }}</p>
-      <p class="align-right" v-if="data.offerings.length !== 0">Lv. {{ data.offerings[0]["level"] }}</p>
+    <div class="container-detailed-exploration" :style="{'grid-template-rows': getGridRowCount(data.displayData)}">
+      <p v-for="key in Object.keys(data.displayData)">{{key}}</p>
+      <p v-for="value in Object.values(data.displayData)">{{value}}</p>
     </div>
   </div>
 </div>`;
-
 const ExplorationBox = defineComponent({
   name: "ExplorationBox",
   template: explorationBoxTemplate,
   props: {
     data: Object,
+  },
+  methods: {
+    getGridRowCount(object) {
+      const count = Object.keys(object).length;
+      return `repeat(${count}, 1fr)`;
+    },
   },
   setup(props) {
     const logo_mapping = {
@@ -112,6 +110,7 @@ const ExplorationBox = defineComponent({
       dragonspine: "dragonspine",
       daoqi: "inazuma",
       enkanomiya: "enkanomiya",
+      chasmsmaw: "chasm",
     };
 
     function getIconUri(rawUri) {
@@ -127,34 +126,10 @@ const ExplorationBox = defineComponent({
       return iconUri;
     }
 
-    const areaLogo = getIconUri(props.data.icon);
-    const explorationPercentage = parseInt(props.data.exploration_percentage) / 10;
+    const areaLogo = getIconUri(props.data.iconUrl);
 
-    return { areaLogo, explorationPercentage };
+    return { areaLogo };
   },
 });
 
-const homeBoxTemplate = html` <div class="home-box">
-  <img class="home-background" :src="backgroundImage" alt="ERROR" />
-  <div class="container-unlocked" v-if="data.level !== -1">
-    <p class="box-content comfort-levelname">{{ data.name }}</p>
-  </div>
-  <div class="container-locked" v-else>
-    <img class="lock-icon" src="http://localhost:9934/resources/item/lock.png" alt="ERROR" />
-  </div>
-</div>`;
-
-const HomeBox = defineComponent({
-  name: "HomeBox",
-  template: homeBoxTemplate,
-  props: {
-    data: Object,
-  },
-  setup(props) {
-    const backgroundImage = `http://localhost:9934/resources/item/${props.data.name}.png`;
-
-    return { backgroundImage };
-  },
-});
-
-export { CharacterBox, ExplorationBox, HomeBox, SectionTitle };
+export { CharacterBox, ExplorationBox, SectionTitle };

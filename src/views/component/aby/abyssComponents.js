@@ -1,7 +1,30 @@
 import { html } from "../common/utils.js";
 
-// eslint-disable-next-line no-undef
-const { defineComponent } = Vue;
+const { defineComponent } = window.Vue;
+
+const titleTemplate = html`
+  <div class="title-content">
+    <img
+      class="arrow-left"
+      src="http://localhost:9934/resources/Version2/components/title-decoration.svg"
+      alt="components/title-decoration.svg"
+    />
+    <div class="abyss-chamber-type-title">{{ title }}</div>
+    <img
+      class="arrow-right"
+      src="http://localhost:9934/resources/Version2/components/title-decoration.svg"
+      alt="components/title-decoration.svg"
+    />
+  </div>
+`;
+
+const challengeTitle = defineComponent({
+  name: "challengeTitle",
+  template: titleTemplate,
+  props: {
+    title: String,
+  },
+});
 
 const showboxTemplate = html`
   <div class="container-character" :class="additionalClass">
@@ -10,7 +33,7 @@ const showboxTemplate = html`
   </div>
 `;
 
-export default defineComponent({
+const characterShowbox = defineComponent({
   name: "characterShowbox",
   template: showboxTemplate,
   props: {
@@ -49,3 +72,5 @@ export default defineComponent({
     };
   },
 });
+
+export { challengeTitle, characterShowbox };
